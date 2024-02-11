@@ -16,6 +16,6 @@ namespace UnityEngine.Rendering.Universal
         /// <summary>
         /// The name of the package
         /// </summary>
-        public const string packageName = "com.unity.render-pipelines.universal";
+        public const string packageName = "com.unity.render-pipelines.danbaidong";
     }
 }

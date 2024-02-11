@@ -3,8 +3,8 @@
 #error SHADERPASS must be defined (at) this point
 #endif
 
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityGBuffer.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Lighting.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityGBuffer.hlsl"
 
 float3 VFXGetPositionRWS(VFX_VARYING_PS_INPUTS i)
 {

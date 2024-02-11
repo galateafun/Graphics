@@ -110,7 +110,7 @@ Shader "Universal Render Pipeline/Simple Lit"
             #pragma multi_compile_fragment _ _LIGHT_LAYERS
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile _ _FORWARD_PLUS
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
 
             // -------------------------------------
             // Unity defined keywords
@@ -125,7 +125,7 @@ Shader "Universal Render Pipeline/Simple Lit"
             // GPU Instancing
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DOTS.hlsl"
 
             //--------------------------------------
             // Defines
@@ -133,8 +133,8 @@ Shader "Universal Render Pipeline/Simple Lit"
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitForwardPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitForwardPass.hlsl"
             ENDHLSL
         }
 
@@ -173,15 +173,15 @@ Shader "Universal Render Pipeline/Simple Lit"
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DOTS.hlsl"
 
             // This is used during shadow map generation to differentiate between directional and punctual light shadows, as they use different formulas to apply Normal Bias
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/ShadowCasterPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/ShadowCasterPass.hlsl"
             ENDHLSL
         }
 
@@ -228,7 +228,7 @@ Shader "Universal Render Pipeline/Simple Lit"
             //#pragma multi_compile _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
 
             // -------------------------------------
             // Unity defined keywords
@@ -245,7 +245,7 @@ Shader "Universal Render Pipeline/Simple Lit"
             // GPU Instancing
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DOTS.hlsl"
 
             //--------------------------------------
             // Defines
@@ -253,8 +253,8 @@ Shader "Universal Render Pipeline/Simple Lit"
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitGBufferPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitGBufferPass.hlsl"
             ENDHLSL
         }
 
@@ -292,12 +292,12 @@ Shader "Universal Render Pipeline/Simple Lit"
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DOTS.hlsl"
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/DepthOnlyPass.hlsl"
             ENDHLSL
         }
 
@@ -334,17 +334,17 @@ Shader "Universal Render Pipeline/Simple Lit"
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
 
             // Universal Pipeline keywords
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
 
             //--------------------------------------
             // GPU Instancing
             #pragma multi_compile_instancing
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DOTS.hlsl"
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitDepthNormalsPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitDepthNormalsPass.hlsl"
             ENDHLSL
         }
 
@@ -377,8 +377,8 @@ Shader "Universal Render Pipeline/Simple Lit"
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitMetaPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitMetaPass.hlsl"
 
             ENDHLSL
         }
@@ -408,8 +408,8 @@ Shader "Universal Render Pipeline/Simple Lit"
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Universal2D.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Utils/Universal2D.hlsl"
             ENDHLSL
         }
     }

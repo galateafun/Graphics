@@ -297,7 +297,7 @@ namespace UnityEngine.Rendering.Universal
     [URPHelpURL("universal-additional-camera-data")]
     public class UniversalAdditionalCameraData : MonoBehaviour, ISerializationCallbackReceiver, IAdditionalData
     {
-        const string k_GizmoPath = "Packages/com.unity.render-pipelines.universal/Editor/Gizmos/";
+        const string k_GizmoPath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Gizmos/";
         const string k_BaseCameraGizmoPath = k_GizmoPath + "Camera_Base.png";
         const string k_OverlayCameraGizmoPath = k_GizmoPath + "Camera_Base.png";
         const string k_PostProcessingGizmoPath = k_GizmoPath + "Camera_PostProcessing.png";
@@ -347,6 +347,9 @@ namespace UnityEngine.Rendering.Universal
         [NonSerialized] TaaPersistentData m_TaaPersistentData = new TaaPersistentData();
 
         [SerializeField] internal TemporalAA.Settings m_TaaSettings = TemporalAA.Settings.Create();
+
+        /// <summary>Copy from HDCamera, Enable to retain history buffers even if the camera is disabled.</summary>
+        public bool hasPersistentHistory = false;
 
         /// <summary>
         /// The serialized version of the class. Used for upgrading.

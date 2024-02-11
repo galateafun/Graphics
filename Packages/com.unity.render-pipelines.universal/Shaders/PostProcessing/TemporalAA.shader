@@ -22,7 +22,7 @@ Shader "Hidden/Universal Render Pipeline/TemporalAA"
 
                 // User RGB color space for better perf. on low-end devices.
                 #define TAA_YCOCG 0
-                #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/TemporalAA.hlsl"
+                #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/PostProcessing/TemporalAA.hlsl"
 
                 half4 TaaFrag(Varyings input) : SV_Target
                 {
@@ -40,7 +40,7 @@ Shader "Hidden/Universal Render Pipeline/TemporalAA"
 
                 // User RGB color space for better perf.
                 #define TAA_YCOCG 0
-                #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/TemporalAA.hlsl"
+                #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/PostProcessing/TemporalAA.hlsl"
 
                 half4 TaaFrag(Varyings input) : SV_Target
                 {
@@ -56,7 +56,7 @@ Shader "Hidden/Universal Render Pipeline/TemporalAA"
 
             HLSLPROGRAM
 
-                #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/TemporalAA.hlsl"
+                #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/PostProcessing/TemporalAA.hlsl"
 
                 half4 TaaFrag(Varyings input) : SV_Target
                 {
@@ -72,7 +72,7 @@ Shader "Hidden/Universal Render Pipeline/TemporalAA"
 
             HLSLPROGRAM
 
-                #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/TemporalAA.hlsl"
+                #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/PostProcessing/TemporalAA.hlsl"
 
                 half4 TaaFrag(Varyings input) : SV_Target
                 {
@@ -88,7 +88,7 @@ Shader "Hidden/Universal Render Pipeline/TemporalAA"
 
             HLSLPROGRAM
 
-                #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/TemporalAA.hlsl"
+                #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/PostProcessing/TemporalAA.hlsl"
 
                 half4 TaaFrag(Varyings input) : SV_Target
                 {
@@ -104,7 +104,7 @@ Shader "Hidden/Universal Render Pipeline/TemporalAA"
 
             HLSLPROGRAM
 
-                #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/TemporalAA.hlsl"
+                #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/PostProcessing/TemporalAA.hlsl"
 
                 half4 TaaFrag(Varyings input) : SV_Target
                 {

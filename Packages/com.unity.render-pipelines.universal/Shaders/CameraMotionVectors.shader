@@ -21,9 +21,9 @@ Shader "Hidden/Universal Render Pipeline/CameraMotionVectors"
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DeclareDepthTexture.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityInput.hlsl"
             #if defined(_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
                 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
             #endif

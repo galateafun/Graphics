@@ -32,7 +32,7 @@ Shader "Hidden/Shadow2DShadowSprite"
             #pragma vertex vert
             #pragma fragment frag
 
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
 
             struct Attributes
             {

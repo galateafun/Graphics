@@ -77,7 +77,7 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             #pragma multi_compile_fragment _ _LIGHT_LAYERS
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile _ _FORWARD_PLUS
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
 
             // -------------------------------------
             // Unity defined keywords
@@ -95,8 +95,8 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             // Sample normal in pixel shader when doing instancing
             #pragma shader_feature_local _TERRAIN_INSTANCED_PERPIXEL_NORMAL
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitPasses.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitPasses.hlsl"
             ENDHLSL
         }
 
@@ -123,8 +123,8 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             // This is used during shadow map generation to differentiate between directional and punctual light shadows, as they use different formulas to apply Normal Bias
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitPasses.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitPasses.hlsl"
             ENDHLSL
         }
 
@@ -155,7 +155,7 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile _ _MIXED_LIGHTING_SUBTRACTIVE
             #pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
 
             // -------------------------------------
             // Unity defined keywords
@@ -178,8 +178,8 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             #pragma shader_feature_local _TERRAIN_INSTANCED_PERPIXEL_NORMAL
             #define TERRAIN_GBUFFER 1
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitPasses.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitPasses.hlsl"
             ENDHLSL
         }
 
@@ -200,8 +200,8 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             #pragma multi_compile_instancing
             #pragma instancing_options assumeuniformscaling nomatrices nolightprobe nolightmap
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitPasses.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitPasses.hlsl"
             ENDHLSL
         }
 
@@ -219,13 +219,13 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             #pragma fragment DepthNormalOnlyFragment
 
             #pragma shader_feature_local _NORMALMAP
-            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
 
             #pragma multi_compile_instancing
             #pragma instancing_options assumeuniformscaling nomatrices nolightprobe nolightmap
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitDepthNormalsPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitDepthNormalsPass.hlsl"
             ENDHLSL
         }
 
@@ -244,8 +244,8 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             #pragma instancing_options assumeuniformscaling nomatrices nolightprobe nolightmap
 
             #define SCENESELECTIONPASS
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitPasses.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitPasses.hlsl"
             ENDHLSL
         }
 
@@ -267,8 +267,8 @@ Shader "Universal Render Pipeline/Terrain/Lit"
             #define _METALLICSPECGLOSSMAP 1
             #define _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A 1
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitMetaPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitMetaPass.hlsl"
 
             ENDHLSL
         }

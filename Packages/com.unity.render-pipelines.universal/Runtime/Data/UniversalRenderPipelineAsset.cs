@@ -228,7 +228,8 @@ namespace UnityEngine.Rendering.Universal
         Sprite,
         UnityBuiltinDefault,
         SpriteMask,
-        Decal
+        Decal,
+        PerObjectShadow,
     }
 
     /// <summary>
@@ -596,8 +597,8 @@ namespace UnityEngine.Rendering.Universal
         [NonSerialized]
         internal UniversalRenderPipelineEditorResources m_EditorResourcesAsset;
 
-        public static readonly string packagePath = "Packages/com.unity.render-pipelines.universal";
-        public static readonly string editorResourcesGUID = "a3d8d823eedde654bb4c11a1cfaf1abb";
+        public static readonly string packagePath = "Packages/com.unity.render-pipelines.danbaidong";
+        public static readonly string editorResourcesGUID = "74516a1559465024cbcc83aa38097552";
 
         public static UniversalRenderPipelineAsset Create(ScriptableRendererData rendererData = null)
         {
@@ -845,6 +846,8 @@ namespace UnityEngine.Rendering.Universal
                 case DefaultMaterialType.Decal:
                     return editorResources.materials.decal;
 
+                case DefaultMaterialType.PerObjectShadow:
+                    return editorResources.materials.perObjectShadow;
                 // Unity Builtin Default
                 default:
                     return null;
@@ -1605,6 +1608,15 @@ namespace UnityEngine.Rendering.Universal
         public Material decalMaterial
         {
             get { return GetMaterial(DefaultMaterialType.Decal); }
+        }
+
+        /// <summary>
+        /// Returns the Material that Unity uses to render perObjectShadow.
+        /// </summary>
+        /// <returns>Returns the Material containing the perObjectShadow shader.</returns>
+        public Material perObjectShadowMaterial
+        {
+            get { return GetMaterial(DefaultMaterialType.PerObjectShadow); }
         }
 
         /// <summary>

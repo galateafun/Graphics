@@ -1,8 +1,8 @@
 #ifndef UNIVERSAL_GBUFFERUTIL_INCLUDED
 #define UNIVERSAL_GBUFFERUTIL_INCLUDED
 
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceData.hlsl"
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/SurfaceData.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Lighting.hlsl"
 
 // inspired from [builtin_shaders]/CGIncludes/UnityGBuffer.cginc
 
@@ -61,6 +61,12 @@
 
 // Light flags.
 #define kLightFlagSubtractiveMixedLighting    4 // The light uses subtractive mixed lighting.
+
+// Character Material flags
+#define kCharacterMaterialFlagOutline           1
+#define kCharacterMaterialFlagFace              2
+#define kCharacterMaterialFlagTemp1             4
+#define kCharacterMaterialFlagTemp2             8
 
 struct FragmentOutput
 {
@@ -277,6 +283,101 @@ InputData InputDataFromGbufferAndWorldPosition(half4 gbuffer2, float3 wsPos)
     inputData.bakedGI = (half3)0; // Note: this is not made available at lighting pass in this renderer - bakedGI contribution is included (with emission) in the value GBuffer3.rgb, that is used as a renderTarget during lighting
 
     return inputData;
+}
+
+
+half3 PackColorToR8G8B8(half3 color)
+{
+    color /= 15.0;
+    color = sqrt(color);
+    return color;
+}
+half3 UnPackColorFromR8G8B8(half3 color)
+{
+    color = color * color;
+    color *= 15;
+    return color;
+}
+
+struct CharacterData
+{
+    half3 albedo;
+    half3 directColor;
+
+    half3 normalWS;
+    half rimStrength;
+    half useShadow;
+    half metallic;
+    half smoothness;
+    uint materialFlags;
+};
+
+// This will encode SurfaceData into GBuffer
+FragmentOutput CharacterDataToGbuffer(half3 albedo, half3 directColor, half3 indirectColor, half smoothness, half metallic, float3 normalWS, half isFace = 0.0, half isOutLine = 0.0)
+{
+    // Pack normal
+    half3 packedNormalWS = PackNormal(normalWS);
+
+    // Pack directColor
+    directColor = PackColorToR8G8B8(directColor);
+
+    // Pack materialFlags
+    uint materialFlags = 0;
+    if (isFace == 1.0)
+    {
+        materialFlags |= kCharacterMaterialFlagFace;
+    }
+    if (isOutLine == 1.0)
+    {
+        materialFlags |= kCharacterMaterialFlagOutline;
+    }
+
+
+    // GBuffer3: ColorAttachment format is precisely, no need to pack.
+    FragmentOutput output;
+    output.GBuffer0 = half4(albedo.rgb, PackMaterialFlags(materialFlags));  // diffuse              diffuse             diffuse             materialFlags   (sRGB albedo will used for additional lighting)
+    output.GBuffer1 = half4(directColor.rgb, metallic);                     // direct               direct              direct              metallic        (directLightColor will mul shadow in defered shading)
+    output.GBuffer2 = half4(packedNormalWS, smoothness);                    // encoded-normal       encoded-normal      encoded-normal      smoothness      (normal1212)
+    output.GBuffer3 = half4(indirectColor, 1);                              // indirect             indirect            indirect            unused          (shadowColor with occlusion applied)
+
+    return output;
+}
+
+// This decodes the Gbuffer into a SurfaceData struct
+CharacterData CharacterDataFromGbuffer(half4 gbuffer0, half4 gbuffer1, half4 gbuffer2)
+{
+    half3 albedo = gbuffer0.rgb;
+    half3 directColor = gbuffer1.rgb;
+
+    uint materialFlags = UnpackMaterialFlags(gbuffer0.a);
+    half metallic = gbuffer1.a;
+    half smoothness = gbuffer2.a;
+
+    half3 normalWS = normalize(UnpackNormal(gbuffer2.xyz));
+
+    // materialFlags
+    half useShadow = 1.0;
+    half rimStrength = 1.0;
+    if ((materialFlags & kCharacterMaterialFlagFace) != 0 )
+    {
+        useShadow = 0.0;
+    }
+    if ((materialFlags & kCharacterMaterialFlagOutline) != 0)
+    {
+        // useShadow = 0.0;
+        rimStrength = 0.0;
+    }
+
+    CharacterData data;
+    data.albedo = albedo;
+    data.directColor = UnPackColorFromR8G8B8(directColor);
+    data.normalWS = normalWS;
+    data.rimStrength = rimStrength;
+    data.useShadow = useShadow;
+    data.metallic = metallic;
+    data.smoothness = smoothness;
+    data.materialFlags = materialFlags;
+    return data;
 }
 
 #endif // UNIVERSAL_GBUFFERUTIL_INCLUDED

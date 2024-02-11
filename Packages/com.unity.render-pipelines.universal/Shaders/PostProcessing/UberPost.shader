@@ -4,8 +4,8 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
         #pragma exclude_renderers gles
         #pragma multi_compile_local_fragment _ _DISTORTION
         #pragma multi_compile_local_fragment _ _CHROMATIC_ABERRATION
-        #pragma multi_compile_local_fragment _ _BLOOM_LQ _BLOOM_HQ _BLOOM_LQ_DIRT _BLOOM_HQ_DIRT
-        #pragma multi_compile_local_fragment _ _HDR_GRADING _TONEMAP_ACES _TONEMAP_NEUTRAL
+        #pragma multi_compile_local_fragment _ _BLOOM_LQ _BLOOM_HQ _BLOOM_LQ_DIRT _BLOOM_HQ_DIRT _BLOOM_DANBAIDONG
+        #pragma multi_compile_local_fragment _ _HDR_GRADING _TONEMAP_GT _TONEMAP_ACES_SAMPLE_VER _TONEMAP_ACES _TONEMAP_NEUTRAL
         #pragma multi_compile_local_fragment _ _FILM_GRAIN
         #pragma multi_compile_local_fragment _ _DITHERING
         #pragma multi_compile_local_fragment _ _GAMMA_20 _LINEAR_TO_SRGB_CONVERSION
@@ -29,16 +29,19 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/HDROutput.hlsl"
 #endif
 
-        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-        #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/Common.hlsl"
-        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
+        #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
+        #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/PostProcessing/Common.hlsl"
+        #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Debug/DebuggingFullscreen.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
 
         // Hardcoded dependencies to reduce the number of variants
-        #if _BLOOM_LQ || _BLOOM_HQ || _BLOOM_LQ_DIRT || _BLOOM_HQ_DIRT
+        #if _BLOOM_LQ || _BLOOM_HQ || _BLOOM_LQ_DIRT || _BLOOM_HQ_DIRT || _BLOOM_DANBAIDONG
             #define BLOOM
             #if _BLOOM_LQ_DIRT || _BLOOM_HQ_DIRT
                 #define BLOOM_DIRT
+            #endif
+            #if _BLOOM_DANBAIDONG
+                #define BLOOM_DANBAIDONG
             #endif
         #endif
 
@@ -54,6 +57,7 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
         float4 _UserLut_Params;
         float4 _Bloom_Params;
         float _Bloom_RGBM;
+        float4 _Bloom_Danbaidong_Params;// threshold, lumRnageScale, preFilterScale, intensity
         float4 _LensDirt_Params;
         float _LensDirt_Intensity;
         float4 _Distortion_Params1;
@@ -180,6 +184,7 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
 
             #if defined(BLOOM)
             {
+
                 float2 uvBloom = uvDistorted;
                 #if defined(_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
                     uvBloom = RemapFoveatedRenderingDistort(uvBloom);
@@ -201,8 +206,27 @@ Shader "Hidden/Universal Render Pipeline/UberPost"
                     bloom.xyz = DecodeRGBM(bloom);
                 }
 
-                bloom.xyz *= BloomIntensity;
-                color += bloom.xyz * BloomTint;
+                #if defined(BLOOM_DANBAIDONG)
+                {
+                    half3 bloomedCol = bloom.xyz * _Bloom_Danbaidong_Params.w + color.xyz;
+
+                    // Expossure (Tonemapping)
+                    // half3 expossuredCol = bloomedCol;
+                    // half3 temp1 = expossuredCol * (expossuredCol * 1.36 + 0.047);
+                    // half3 temp2 = expossuredCol * (expossuredCol * 0.93 + 0.56) + 0.14;
+                    // half3 tonemappedCol = temp1 / temp2;
+                    // tonemappedCol = clamp(tonemappedCol, 0.0, 1.0);
+
+                    color = bloomedCol;
+
+                }
+                #else
+                {
+                    bloom.xyz *= BloomIntensity;
+                    color += bloom.xyz * BloomTint;
+                }
+                #endif
+
 
                 #if defined(BLOOM_DIRT)
                 {

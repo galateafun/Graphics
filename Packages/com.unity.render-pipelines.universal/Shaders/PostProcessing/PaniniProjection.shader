@@ -6,7 +6,7 @@ Shader "Hidden/Universal Render Pipeline/PaniniProjection"
 
         #pragma multi_compile_local _GENERIC _UNIT_DISTANCE
 
-        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+        #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
 
         float4 _Params;

@@ -3,15 +3,15 @@
 #define UNIVERSAL_DEBUGGING3D_INCLUDED
 
 // Ensure that we always include "DebuggingCommon.hlsl" even if we don't use it - saves extraneous includes elsewhere...
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Debug/DebuggingCommon.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Debug/DebuggingCommon.hlsl"
 
 #if defined(DEBUG_DISPLAY)
 
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/BRDF.hlsl"
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/GlobalIllumination.hlsl"
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RealtimeLights.hlsl"
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
-#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/SurfaceData.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/BRDF.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/GlobalIllumination.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RealtimeLights.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Shadows.hlsl"
+#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/SurfaceData.hlsl"
 
 #define SETUP_DEBUG_TEXTURE_DATA(inputData, uv, texture)    SetupDebugDataTexture(inputData, uv, texture##_TexelSize, texture##_MipInfo, GetMipCount(TEXTURE2D_ARGS(texture, sampler##texture)))
 

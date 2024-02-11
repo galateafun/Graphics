@@ -24,7 +24,7 @@ Shader "Hidden/Universal Render Pipeline/XR/XRMirrorView"
                 #pragma never_use_dxc metal
 
                 #define SRC_TEXTURE2D_X_ARRAY 0
-                #include "Packages/com.unity.render-pipelines.universal/Shaders/XR/XRMirrorView.hlsl"
+                #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/XR/XRMirrorView.hlsl"
             ENDHLSL
         }
 
@@ -41,7 +41,7 @@ Shader "Hidden/Universal Render Pipeline/XR/XRMirrorView"
                 #pragma never_use_dxc metal
 
                 #define SRC_TEXTURE2D_X_ARRAY 1
-                #include "Packages/com.unity.render-pipelines.universal/Shaders/XR/XRMirrorView.hlsl"
+                #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/XR/XRMirrorView.hlsl"
             ENDHLSL
         }
     }

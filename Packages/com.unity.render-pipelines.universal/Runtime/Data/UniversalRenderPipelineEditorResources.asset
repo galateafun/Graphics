@@ -9,20 +9,29 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 76e49a5b88430df478c504fe5a5c1a62, type: 3}
+  m_Script: {fileID: 11500000, guid: 601c3305ed56eae46a218f6b57568133, type: 3}
   m_Name: UniversalRenderPipelineEditorResources
   m_EditorClassIdentifier: 
   shaders:
-    autodeskInteractivePS: {fileID: 4800000, guid: 0e9d5a909a1f7e84882a534d0d11e49f, type: 3}
-    autodeskInteractiveTransparentPS: {fileID: 4800000, guid: 5c81372d981403744adbdda4433c9c11, type: 3}
-    autodeskInteractiveMaskedPS: {fileID: 4800000, guid: 80aa867ac363ac043847b06ad71604cd, type: 3}
-    terrainDetailLitPS: {fileID: 4800000, guid: f6783ab646d374f94b199774402a5144, type: 3}
-    terrainDetailGrassPS: {fileID: 4800000, guid: e507fdfead5ca47e8b9a768b51c291a1, type: 3}
-    terrainDetailGrassBillboardPS: {fileID: 4800000, guid: 29868e73b638e48ca99a19ea58c48d90, type: 3}
-    defaultSpeedTree7PS: {fileID: 4800000, guid: 0f4122b9a743b744abe2fb6a0a88868b, type: 3}
-    defaultSpeedTree8PS: {fileID: -6465566751694194690, guid: 9920c1f1781549a46ba081a2a15a16ec, type: 3}
+    autodeskInteractivePS: {fileID: 4800000, guid: 2f3450a249de76b4f87b79e2f285dac8,
+      type: 3}
+    autodeskInteractiveTransparentPS: {fileID: 4800000, guid: 4c993137d9a408942bdad397d1c6b055,
+      type: 3}
+    autodeskInteractiveMaskedPS: {fileID: 4800000, guid: 5c1882d686cd9ad48981d3b810711a3f,
+      type: 3}
+    terrainDetailLitPS: {fileID: 4800000, guid: f7aedc4792583c44ca2673107f3b0eec,
+      type: 3}
+    terrainDetailGrassPS: {fileID: 4800000, guid: e9969cc8ce328e04b9cfd36fd5d6056d,
+      type: 3}
+    terrainDetailGrassBillboardPS: {fileID: 4800000, guid: e50481b5bbbc22449bb1af7a32feac68,
+      type: 3}
+    defaultSpeedTree7PS: {fileID: 4800000, guid: fa2aa7b5dbef18d4c8fc1ca6cd5d95ec,
+      type: 3}
+    defaultSpeedTree8PS: {fileID: -6465566751694194690, guid: 2a4e2d0845968a24e80bb3f3f0c8f4fc,
+      type: 3}
   materials:
-    lit: {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
-    particleLit: {fileID: 2100000, guid: e823cd5b5d27c0f4b8256e7c12ee3e6d, type: 2}
-    terrainLit: {fileID: 2100000, guid: 594ea882c5a793440b60ff72d896021e, type: 2}
-    decal: {fileID: 2100000, guid: 31d0dcc6f2dd4e4408d18036a2c93862, type: 2}
+    lit: {fileID: 2100000, guid: 4c19d03af4d77ae49a8fd7cc69e444d9, type: 2}
+    particleLit: {fileID: 2100000, guid: 967975fd3c927404f8cfc63dedbd5b14, type: 2}
+    terrainLit: {fileID: 2100000, guid: 9e5910564648af448a992695f507b880, type: 2}
+    decal: {fileID: 2100000, guid: cadf8cffc0e96104ebfb0fcee5d9d834, type: 2}
+    perObjectShadow: {fileID: 2100000, guid: dc23a92623888a243a8ed06e31cdc9b5, type: 2}

@@ -39,8 +39,8 @@ Shader "Hidden/TerrainEngine/Details/UniversalPipeline/Vertexlit"
             #pragma vertex TerrainLitVertex
             #pragma fragment TerrainLitForwardFragment
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainDetailLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainDetailLitPasses.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainDetailLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainDetailLitPasses.hlsl"
             ENDHLSL
         }
 
@@ -71,9 +71,9 @@ Shader "Hidden/TerrainEngine/Details/UniversalPipeline/Vertexlit"
             #pragma multi_compile_fragment _ _GBUFFER_NORMALS_OCT
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
 
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityGBuffer.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Lighting.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityGBuffer.hlsl"
 
             TEXTURE2D(_MainTex);       SAMPLER(sampler_MainTex);
             float4 _MainTex_ST;
@@ -187,8 +187,8 @@ Shader "Hidden/TerrainEngine/Details/UniversalPipeline/Vertexlit"
             // GPU Instancing
             #pragma multi_compile_instancing
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/UnlitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/DepthOnlyPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/UnlitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/DepthOnlyPass.hlsl"
             ENDHLSL
         }
 
@@ -208,8 +208,8 @@ Shader "Hidden/TerrainEngine/Details/UniversalPipeline/Vertexlit"
             // GPU Instancing
             #pragma multi_compile_instancing
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/Terrain/TerrainLitDepthNormalsPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/Terrain/TerrainLitDepthNormalsPass.hlsl"
             ENDHLSL
         }
 
@@ -226,8 +226,8 @@ Shader "Hidden/TerrainEngine/Details/UniversalPipeline/Vertexlit"
 
             #pragma shader_feature_local_fragment _SPECGLOSSMAP
 
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitInput.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/Shaders/SimpleLitMetaPass.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/SimpleLitMetaPass.hlsl"
             ENDHLSL
         }
     }

@@ -25,8 +25,8 @@ Shader "Hidden/Universal Render Pipeline/ObjectMotionVectors"
 
             // -------------------------------------
             // Includes
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityInput.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityInput.hlsl"
 #ifndef HAVE_VFX_MODIFICATION
     #pragma multi_compile _ DOTS_INSTANCING_ON
     #if UNITY_PLATFORM_ANDROID || UNITY_PLATFORM_WEBGL || UNITY_PLATFORM_UWP

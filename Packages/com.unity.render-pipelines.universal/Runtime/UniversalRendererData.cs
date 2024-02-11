@@ -6,6 +6,8 @@ using ShaderKeywordFilter = UnityEditor.ShaderKeywordFilter;
 using System;
 using UnityEngine.Scripting.APIUpdating;
 using UnityEngine.Assertions;
+using UnityEngine.Rendering.Universal.Internal;
+using System.Collections.Generic;
 
 namespace UnityEngine.Rendering.Universal
 {
@@ -20,6 +22,23 @@ namespace UnityEngine.Rendering.Universal
         AfterTransparents,
         /// <summary>Depth will be written by a depth prepass</summary>
         ForcePrepass
+    }
+
+    [Serializable]
+    public class InsertedGBufferPassSetting
+    {
+        public string lightMode = "GBufferInserted";
+
+        [Tooltip("Disable overrideStencil if you want to use shader custom stencil")]
+        public bool overrideStencil = true;
+        public StencilUsage stencil = StencilUsage.MaterialUnlit;
+
+        [Tooltip("Fur multi passes rendering")]
+        public bool multiPass = false;
+        [Range(1, 30)]
+        public int multiTimes = 10;
+
+        public LayerMask layer;
     }
 
     /// <summary>
@@ -133,6 +152,30 @@ namespace UnityEngine.Rendering.Universal
             /// </summary>
             [Reload("Shaders/PostProcessing/LensFlareDataDriven.shader")]
             public Shader dataDrivenLensFlare;
+
+            /// <summary>
+            /// GPUCopy compute shader.
+            /// </summary>
+            [Reload("Shaders/Utils/GPUCopy.compute")]
+            public ComputeShader copyChannelCS;
+
+            /// <summary>
+            /// DepthPyramid compute shader.
+            /// </summary>
+            [Reload("Shaders/Utils/DepthPyramid.compute")]
+            public ComputeShader depthPyramidCS;
+
+            /// <summary>
+            /// ColorPyramid pixel shader.Current we use computeshader instead.
+            /// </summary>
+            [Reload("Shaders/Utils/ColorPyramid.shader")]
+            public Shader colorPyramid;
+
+            /// <summary>
+            /// ColorPyramid compute shader.
+            /// </summary>
+            [Reload("Shaders/Utils/ColorPyramid.compute")]
+            public ComputeShader colorPyramidCS;
         }
 
         /// <summary>
@@ -153,6 +196,8 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public ShaderResources shaders = null;
 
+        public UniversalRenderPipelineRuntimeResources defaultRuntimeReources = null;
+
         const int k_LatestAssetVersion = 2;
         [SerializeField] int m_AssetVersion = 0;
         [SerializeField] LayerMask m_OpaqueLayerMask = -1;
@@ -169,6 +214,8 @@ namespace UnityEngine.Rendering.Universal
 #endif
         [SerializeField] bool m_AccurateGbufferNormals = false;
         [SerializeField] IntermediateTextureMode m_IntermediateTextureMode = IntermediateTextureMode.Always;
+
+        [SerializeField] List<InsertedGBufferPassSetting> m_InsertedGbufferPasses = new List<InsertedGBufferPassSetting>();
 
         /// <inheritdoc/>
         protected override ScriptableRenderer Create()
@@ -298,6 +345,19 @@ namespace UnityEngine.Rendering.Universal
             }
         }
 
+        /// <summary>
+        ///  Passes Inserted after Gbuffer Pass.
+        /// </summary>
+        public List<InsertedGBufferPassSetting> insertedGbufferPasses
+        {
+            get => m_InsertedGbufferPasses;
+            set
+            {
+                SetDirty();
+                m_InsertedGbufferPasses = value;
+            }
+        }
+
         /// <inheritdoc/>
         protected override void OnEnable()
         {
@@ -308,6 +368,9 @@ namespace UnityEngine.Rendering.Universal
             // serialized resources in a different format. Early returning here when OnEnable is called
             // upon asset creation is fine because we guarantee new assets get created with all resources initialized.
             if (shaders == null)
+                return;
+
+            if (defaultRuntimeReources == null)
                 return;
 
             ReloadAllNullProperties();

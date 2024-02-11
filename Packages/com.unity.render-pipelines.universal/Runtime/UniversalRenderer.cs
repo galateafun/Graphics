@@ -88,6 +88,18 @@ namespace UnityEngine.Rendering.Universal
 #if ADAPTIVE_PERFORMANCE_2_1_0_OR_NEWER
         internal bool needTransparencyPass { get { return !UniversalRenderPipeline.asset.useAdaptivePerformance || !AdaptivePerformance.AdaptivePerformanceRenderSettings.SkipTransparentObjects;; } }
 #endif
+
+        /// <summary>
+        /// DepthBufferMipChain
+        /// </summary>
+        internal RenderingUtils.PackedMipChainInfo m_DepthBufferMipChainInfo = new RenderingUtils.PackedMipChainInfo();
+        internal ref RenderingUtils.PackedMipChainInfo depthBufferMipChainInfo => ref m_DepthBufferMipChainInfo;
+        internal Vector2Int depthMipChainSize => m_DepthBufferMipChainInfo.textureSize;
+
+        internal ComputeBuffer depthPyramidMipLevelOffsetsBuffer = null;
+
+        internal int colorPyramidHistoryMipCount = 0;
+
         /// <summary>Property to control the depth priming behavior of the forward rendering path.</summary>
         public DepthPrimingMode depthPrimingMode { get { return m_DepthPrimingMode; } set { m_DepthPrimingMode = value; } }
         DepthOnlyPass m_DepthPrepass;
@@ -105,6 +117,9 @@ namespace UnityEngine.Rendering.Universal
         DrawSkyboxPass m_DrawSkyboxPass;
         CopyDepthPass m_CopyDepthPass;
         CopyColorPass m_CopyColorPass;
+        GPUCopyPass m_GPUCopyPass;
+        DepthPyramidPass m_DepthPyramidPass;
+        ColorPyramidPass m_ColorPyramidPass;
         TransparentSettingsPass m_TransparentSettingsPass;
         DrawObjectsPass m_RenderTransparentForwardPass;
         InvokeOnRenderObjectCallbackPass m_OnRenderObjectCallbackPass;
@@ -126,6 +141,7 @@ namespace UnityEngine.Rendering.Universal
         RTHandle m_ColorFrontBuffer;
         internal RTHandle m_ActiveCameraDepthAttachment;
         internal RTHandle m_CameraDepthAttachment;
+        internal RTHandle m_CameraDepthBufferMipChain;
         RTHandle m_XRTargetHandleAlias;
         internal RTHandle m_DepthTexture;
         RTHandle m_NormalsTexture;
@@ -228,6 +244,9 @@ namespace UnityEngine.Rendering.Universal
 #else
             this.m_DepthPrimingRecommended = true;
 #endif
+            // DepthBufferMipChain Allocate
+            m_DepthBufferMipChainInfo.Allocate();
+            depthPyramidMipLevelOffsetsBuffer = new ComputeBuffer(15, sizeof(int) * 2);
 
             // Note: Since all custom render passes inject first and we have stable sort,
             // we inject the builtin passes in the before events.
@@ -256,7 +275,7 @@ namespace UnityEngine.Rendering.Universal
                 m_DeferredLights = new DeferredLights(deferredInitParams, useRenderPassEnabled);
                 m_DeferredLights.AccurateGbufferNormals = data.accurateGbufferNormals;
 
-                m_GBufferPass = new GBufferPass(RenderPassEvent.BeforeRenderingGbuffer, RenderQueueRange.opaque, data.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference, m_DeferredLights);
+                m_GBufferPass = new GBufferPass(RenderPassEvent.BeforeRenderingGbuffer, RenderQueueRange.opaque, data.opaqueLayerMask, m_DefaultStencilState, stencilData.stencilReference, m_DeferredLights, data.insertedGbufferPasses);
                 // Forward-only pass only runs if deferred renderer is enabled.
                 // It allows specific materials to be rendered in a forward-like pass.
                 // We render both gbuffer pass and forward-only pass before the deferred lighting pass so we can minimize copies of depth buffer and
@@ -274,6 +293,8 @@ namespace UnityEngine.Rendering.Universal
                 };
                 int forwardOnlyStencilRef = stencilData.stencilReference | (int)StencilUsage.MaterialUnlit;
                 m_GBufferCopyDepthPass = new CopyDepthPass(RenderPassEvent.BeforeRenderingGbuffer + 1, m_CopyDepthMaterial, true);
+                m_GPUCopyPass = new GPUCopyPass(RenderPassEvent.BeforeRenderingGbuffer + 1, data.defaultRuntimeReources.shaders.copyChannelCS, true);
+                m_DepthPyramidPass = new DepthPyramidPass(RenderPassEvent.BeforeRenderingGbuffer + 2, data.defaultRuntimeReources.shaders.depthPyramidCS);
                 m_DeferredPass = new DeferredPass(RenderPassEvent.BeforeRenderingDeferredLights, m_DeferredLights);
                 m_RenderOpaqueForwardOnlyPass = new DrawObjectsPass("Render Opaques Forward Only", forwardOnlyShaderTagIds, true, RenderPassEvent.BeforeRenderingOpaques, RenderQueueRange.opaque, data.opaqueLayerMask, forwardOnlyStencilState, forwardOnlyStencilRef);
             }
@@ -292,6 +313,7 @@ namespace UnityEngine.Rendering.Universal
 
             m_DrawSkyboxPass = new DrawSkyboxPass(RenderPassEvent.BeforeRenderingSkybox);
             m_CopyColorPass = new CopyColorPass(RenderPassEvent.AfterRenderingSkybox, m_SamplingMaterial, m_BlitMaterial);
+            m_ColorPyramidPass = new ColorPyramidPass(RenderPassEvent.AfterRenderingSkybox, data.defaultRuntimeReources.shaders.colorPyramidCS);
 #if ADAPTIVE_PERFORMANCE_2_1_0_OR_NEWER
             if (needTransparencyPass)
 #endif
@@ -352,6 +374,7 @@ namespace UnityEngine.Rendering.Universal
         {
             m_ForwardLights.Cleanup();
             m_GBufferPass?.Dispose();
+            m_ColorPyramidPass?.Dispose();
             m_PostProcessPasses.Dispose();
             m_FinalBlitPass?.Dispose();
             m_DrawOffscreenUIPass?.Dispose();
@@ -370,6 +393,8 @@ namespace UnityEngine.Rendering.Universal
             CoreUtils.Destroy(m_CameraMotionVecMaterial);
             CoreUtils.Destroy(m_ObjectMotionVecMaterial);
 
+            CoreUtils.SafeRelease(depthPyramidMipLevelOffsetsBuffer);
+
             CleanupRenderGraphResources();
 
             LensFlareCommonSRP.Dispose();
@@ -387,12 +412,27 @@ namespace UnityEngine.Rendering.Universal
 
             m_CameraDepthAttachment?.Release();
             m_DepthTexture?.Release();
+            m_CameraDepthBufferMipChain?.Release();
             m_NormalsTexture?.Release();
             m_DecalLayersTexture?.Release();
             m_OpaqueColor?.Release();
             m_MotionVectorColor?.Release();
             m_MotionVectorDepth?.Release();
             hasReleasedRTs = true;
+        }
+
+        // BufferedRTHandleSystem API expects an allocator function. We define it here.
+        /// <summary>
+        /// Allocator for cameraColorBufferMipChain.
+        /// TODO: dimension configured
+        /// </summary>
+        static RTHandle HistoryBufferAllocatorFunction(GraphicsFormat graphicsFormat, string viewName, int frameIndex, RTHandleSystem rtHandleSystem)
+        {
+            frameIndex &= 1;
+
+            return rtHandleSystem.Alloc(Vector2.one, TextureXR.slices, colorFormat: graphicsFormat,
+                enableRandomWrite: true, useMipMap: true, autoGenerateMips: false, useDynamicScale: true,
+                name: string.Format("{0}_CameraColorBufferMipChain{1}", viewName, frameIndex));
         }
 
         private void SetupFinalPassDebug(ref CameraData cameraData)
@@ -553,6 +593,15 @@ namespace UnityEngine.Rendering.Universal
 
             // Gather render passe input requirements
             RenderPassInputSummary renderPassInputs = GetRenderPassInputs(ref renderingData);
+
+            // Handle history buffers input requirements.
+            bool isReflectionCamera = cameraData.cameraType == CameraType.Reflection;
+            bool generateColorPyramidCamera = !isPreviewCamera && !isReflectionCamera;
+            bool isCurrentColorPyramidRequired = renderPassInputs.requiresColorTexture && generateColorPyramidCamera;
+            bool isHistoryColorPyramidRequired = renderPassInputs.requiresHistoryColorTexture && generateColorPyramidCamera;
+
+            // GetCameraHistoryRTSystem before all passes.Note that the RTs might be null at first frame.
+            HistoryFrameRTSystem curCameraHistoryRTSystem = HistoryFrameRTSystem.GetOrCreate(camera);
 
             // Gather render pass require rendering layers event and mask size
             bool requiresRenderingLayer = RenderingLayerUtils.RequireRenderingLayers(this, rendererFeatures,
@@ -734,13 +783,11 @@ namespace UnityEngine.Rendering.Universal
                 if (cameraData.xr.enabled)
                     targetId = cameraData.xr.renderTarget;
 #endif
-                if (m_XRTargetHandleAlias == null)
+
+                if (m_XRTargetHandleAlias == null || m_XRTargetHandleAlias.nameID != targetId)
                 {
+                    m_XRTargetHandleAlias?.Release();
                     m_XRTargetHandleAlias = RTHandles.Alloc(targetId);
-                }
-                else if (m_XRTargetHandleAlias.nameID != targetId)
-                {
-                    RTHandleStaticHelpers.SetRTHandleUserManagedWrapper(ref m_XRTargetHandleAlias, targetId);
                 }
 
                 // Doesn't create texture for Overlay cameras as they are already overlaying on top of created textures.
@@ -842,11 +889,80 @@ namespace UnityEngine.Rendering.Universal
                 depthDescriptor.msaaSamples = 1;// Depth-Only pass don't use MSAA
                 RenderingUtils.ReAllocateIfNeeded(ref m_DepthTexture, depthDescriptor, FilterMode.Point, wrapMode: TextureWrapMode.Clamp, name: "_CameraDepthTexture");
 
+                // DepthBufferMipChain Allocate
+                int actualWidth = cameraData.cameraTargetDescriptor.width;
+                int actualHeight = cameraData.cameraTargetDescriptor.height;
+                Vector2Int nonScaledViewport = new Vector2Int(actualWidth, actualHeight);
+
+                m_DepthBufferMipChainInfo.ComputePackedMipChainInfo(nonScaledViewport);
+
+                var depthMipChainDescriptor = depthDescriptor;
+                depthMipChainDescriptor.width = depthMipChainSize.x;
+                depthMipChainDescriptor.height = depthMipChainSize.y;
+                depthMipChainDescriptor.enableRandomWrite = true;
+                RenderingUtils.ReAllocateIfNeeded(ref m_CameraDepthBufferMipChain, depthMipChainDescriptor, FilterMode.Point, wrapMode: TextureWrapMode.Clamp, name: "_CameraDepthBufferMipChain");
+
                 cmd.SetGlobalTexture(m_DepthTexture.name, m_DepthTexture.nameID);
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
             }
 
+            // Handle history buffers allocation
+            if (curCameraHistoryRTSystem != null && ((this.renderingModeActual == RenderingMode.Deferred && !this.useRenderPassEnabled) || isCurrentColorPyramidRequired || isHistoryColorPyramidRequired))
+            {
+
+                bool forceReallocHistorySystem = false;
+                int numColorPyramidBuffersAllocated = curCameraHistoryRTSystem.GetNumFramesAllocated(HistoryFrameType.ColorBufferMipChain);
+                if (numColorPyramidBuffersAllocated > 0)
+                {
+                    var currPyramid = curCameraHistoryRTSystem.GetCurrentFrameRT(HistoryFrameType.ColorBufferMipChain);
+                    if (currPyramid != null && currPyramid.rt.graphicsFormat != cameraTargetDescriptor.graphicsFormat)
+                    {
+                        forceReallocHistorySystem = true;
+                    }
+                }
+
+                int numColorPyramidBuffersRequired = 0;
+                if (isCurrentColorPyramidRequired)
+                    numColorPyramidBuffersRequired = 1;
+                if (isHistoryColorPyramidRequired) // Superset of case above
+                    numColorPyramidBuffersRequired = 2;
+
+                // Handle the color buffers
+                if (numColorPyramidBuffersAllocated != numColorPyramidBuffersRequired || forceReallocHistorySystem)
+                {
+                    // Reinit the system.
+                    cameraData.colorPyramidHistoryIsValid = false;
+
+                    if (forceReallocHistorySystem)
+                    {
+                        curCameraHistoryRTSystem.Dispose();
+                        curCameraHistoryRTSystem = HistoryFrameRTSystem.GetOrCreate(camera);
+                    }
+                    else
+                    {
+                        // We only need to release all the ColorBufferMipChain buffers (and they will potentially be allocated just under if needed).
+                        curCameraHistoryRTSystem.ReleaseBuffer((int)HistoryFrameType.ColorBufferMipChain);
+                    }
+
+
+                    if (numColorPyramidBuffersRequired != 0 || forceReallocHistorySystem)
+                    {
+                        // Make sure we don't try to allocate a history target with zero buffers
+                        bool needColorPyramid = numColorPyramidBuffersRequired > 0;
+
+                        if (needColorPyramid)
+                        {
+                            curCameraHistoryRTSystem.AllocHistoryFrameRT((int)HistoryFrameType.ColorBufferMipChain, cameraData.camera.name,
+                                                                        HistoryBufferAllocatorFunction, cameraTargetDescriptor.graphicsFormat, numColorPyramidBuffersRequired);
+                            Debug.Log("AllocHistoryFrameRT " + cameraData.cameraType + ": " + cameraTargetDescriptor.graphicsFormat + ", buffers:" + numColorPyramidBuffersRequired);
+                        }
+
+                    }
+
+                }
+            }
+            
             if (requiresRenderingLayer || (renderingModeActual == RenderingMode.Deferred && m_DeferredLights.UseRenderingLayers))
             {
                 ref var renderingLayersTexture = ref m_DecalLayersTexture;
@@ -1097,6 +1213,18 @@ namespace UnityEngine.Rendering.Universal
                 m_CopyColorPass.Setup(m_ActiveCameraColorAttachment, m_OpaqueColor, downsamplingMethod);
                 EnqueuePass(m_CopyColorPass);
             }
+            
+            // ColorPyramid Pass
+            if (copyColorPass || isCurrentColorPyramidRequired || isHistoryColorPyramidRequired)
+            {
+                int actualWidth = cameraData.cameraTargetDescriptor.width;
+                int actualHeight = cameraData.cameraTargetDescriptor.height;
+
+                Vector2Int pyramidSize = new Vector2Int(actualWidth, actualHeight);
+                RTHandle colorpyramidRTHandle = curCameraHistoryRTSystem.GetCurrentFrameRT(HistoryFrameType.ColorBufferMipChain);
+                m_ColorPyramidPass.Setup(m_ActiveCameraColorAttachment, colorpyramidRTHandle, pyramidSize);
+                EnqueuePass(m_ColorPyramidPass);
+            }
 
             // Motion vectors
             if (renderPassInputs.requiresMotionVectors)
@@ -1342,6 +1470,12 @@ namespace UnityEngine.Rendering.Universal
             {
                 m_GBufferCopyDepthPass.Setup(m_CameraDepthAttachment, m_DepthTexture);
                 EnqueuePass(m_GBufferCopyDepthPass);
+
+                m_GPUCopyPass.Setup(m_CameraDepthAttachment, m_CameraDepthBufferMipChain);
+                EnqueuePass(m_GPUCopyPass);
+
+                m_DepthPyramidPass.Setup(m_CameraDepthBufferMipChain, m_DepthBufferMipChainInfo);
+                EnqueuePass(m_DepthPyramidPass);
             }
 
             EnqueuePass(m_DeferredPass);
@@ -1356,6 +1490,7 @@ namespace UnityEngine.Rendering.Universal
             internal bool requiresNormalsTexture;
             internal bool requiresColorTexture;
             internal bool requiresColorTextureCreated;
+            internal bool requiresHistoryColorTexture;
             internal bool requiresMotionVectors;
             internal RenderPassEvent requiresDepthNormalAtEvent;
             internal RenderPassEvent requiresDepthTextureEarliestEvent;
@@ -1374,6 +1509,7 @@ namespace UnityEngine.Rendering.Universal
                 bool needsDepth = (pass.input & ScriptableRenderPassInput.Depth) != ScriptableRenderPassInput.None;
                 bool needsNormals = (pass.input & ScriptableRenderPassInput.Normal) != ScriptableRenderPassInput.None;
                 bool needsColor = (pass.input & ScriptableRenderPassInput.Color) != ScriptableRenderPassInput.None;
+                bool needsHistoryColor = (pass.input & ScriptableRenderPassInput.HistoryColor) != ScriptableRenderPassInput.None;
                 bool needsMotion = (pass.input & ScriptableRenderPassInput.Motion) != ScriptableRenderPassInput.None;
                 bool eventBeforeMainRendering = pass.renderPassEvent <= beforeMainRenderingEvent;
 
@@ -1388,6 +1524,7 @@ namespace UnityEngine.Rendering.Universal
                 inputSummary.requiresDepthPrepass |= needsNormals || needsDepth && eventBeforeMainRendering;
                 inputSummary.requiresNormalsTexture |= needsNormals;
                 inputSummary.requiresColorTexture |= needsColor;
+                inputSummary.requiresHistoryColorTexture |= needsHistoryColor;
                 inputSummary.requiresMotionVectors |= needsMotion;
                 if (needsDepth)
                     inputSummary.requiresDepthTextureEarliestEvent = (RenderPassEvent)Mathf.Min((int)pass.renderPassEvent, (int)inputSummary.requiresDepthTextureEarliestEvent);

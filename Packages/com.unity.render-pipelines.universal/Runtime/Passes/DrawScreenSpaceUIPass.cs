@@ -123,11 +123,14 @@ namespace UnityEngine.Rendering.Universal
                 }
                 else
                 {
-                    // Get RTHandle alias to use RTHandle apis
-                    RTHandleStaticHelpers.SetRTHandleStaticWrapper(cameraTarget);
-                    var colorTargetHandle = RTHandleStaticHelpers.s_RTHandleWrapper;
+                    // Create RTHandle alias to use RTHandle apis
+                    if (m_ColorTarget != cameraTarget)
+                    {
+                        m_ColorTarget?.Release();
+                        m_ColorTarget = RTHandles.Alloc(cameraTarget);
+                    }
 
-                    CoreUtils.SetRenderTarget(renderingData.commandBuffer, colorTargetHandle);
+                    CoreUtils.SetRenderTarget(renderingData.commandBuffer, m_ColorTarget);
                 }
             }
 

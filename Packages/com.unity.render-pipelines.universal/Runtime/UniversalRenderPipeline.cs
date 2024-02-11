@@ -168,12 +168,12 @@ namespace UnityEngine.Rendering.Universal
         /// </summary>
         public override RenderPipelineGlobalSettings defaultSettings => m_GlobalSettings;
 
+        internal UniversalRenderPipelineRuntimeResources defaultRuntimeResources { get { return m_GlobalSettings.renderPipelineRuntimeResources; } }
+
         // flag to keep track of depth buffer requirements by any of the cameras in the stack
         internal static bool cameraStackRequiresDepthForPostprocessing = false;
 
         internal static RenderGraph s_RenderGraph;
-        internal static RTHandleResourcePool s_RTHandlePool;
-
         private static bool useRenderGraph;
 
         // Reference to the asset associated with the pipeline.
@@ -183,6 +183,9 @@ namespace UnityEngine.Rendering.Universal
         // This field provides the correct reference for the purpose of cleaning up the renderers on this pipeline
         // asset.
         private readonly UniversalRenderPipelineAsset pipelineAsset;
+
+        // Use to detect frame changes (for accurate frame count in editor, consider using hdCamera.GetCameraFrameCount)
+        int m_FrameCount;
 
         /// <inheritdoc/>
         public override string ToString() => pipelineAsset?.ToString();
@@ -202,6 +205,8 @@ namespace UnityEngine.Rendering.Universal
 #endif
             SetSupportedRenderingFeatures(pipelineAsset);
 
+            SetRendererDataDefaultRuntimeResources(pipelineAsset);
+
             // Initial state of the RTHandle system.
             // We initialize to screen width/height to avoid multiple realloc that can lead to inflated memory usage (as releasing of memory is delayed).
             RTHandles.Initialize(Screen.width, Screen.height);
@@ -218,11 +223,24 @@ namespace UnityEngine.Rendering.Universal
                 QualitySettings.antiAliasing = asset.msaaSampleCount;
             }
 
+#if UNITY_EDITOR
+            UpgradeResourcesIfNeeded();
+
+            //In case we are loading element in the asset pipeline (occurs when library is not fully constructed) the creation of the URPRenderPipeline is done at a time we cannot access resources.
+            //So in this case, the reloader would fail and the resources cannot be validated. So skip validation here.
+            //The URPRenderPipeline will be reconstructed in a few frame which will fix this issue.
+            if (m_GlobalSettings.AreRuntimeResourcesCreated() == false)
+                return;
+
+            m_GlobalSettings.EnsureShadersCompiled();
+#endif
 
             // Configure initial XR settings
             MSAASamples msaaSamples = (MSAASamples)Mathf.Clamp(Mathf.NextPowerOfTwo(QualitySettings.antiAliasing), (int)MSAASamples.None, (int)MSAASamples.MSAA8x);
             XRSystem.SetDisplayMSAASamples(msaaSamples);
             XRSystem.SetRenderScale(asset.renderScale);
+
+            BlueNoiseSystem.Initialize(defaultRuntimeResources);
 
             Shader.globalRenderPipeline = k_ShaderTagName;
 
@@ -234,16 +252,26 @@ namespace UnityEngine.Rendering.Universal
 
             DecalProjector.defaultMaterial = asset.decalMaterial;
 
+            PerObjectShadowProjector.defaultMaterial = asset.perObjectShadowMaterial;
+
             s_RenderGraph = new RenderGraph("URPRenderGraph");
             useRenderGraph = false;
-
-            s_RTHandlePool = new RTHandleResourcePool();
 
             DebugManager.instance.RefreshEditor();
             m_DebugDisplaySettingsUI.RegisterDebug(UniversalRenderPipelineDebugDisplaySettings.Instance);
 
             QualitySettings.enableLODCrossFade = asset.enableLODCrossFade;
         }
+
+#if UNITY_EDITOR
+        void UpgradeResourcesIfNeeded()
+        {
+            // Check that the serialized Resources are not broken
+            m_GlobalSettings.EnsureRuntimeResources(forceReload: true);
+
+
+        }
+#endif
 
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
@@ -262,11 +290,13 @@ namespace UnityEngine.Rendering.Universal
             ShaderData.instance.Dispose();
             XRSystem.Dispose();
 
+            BlueNoiseSystem.ClearAll();
+
             s_RenderGraph.Cleanup();
             s_RenderGraph = null;
 
-            s_RTHandlePool.Cleanup();
-            s_RTHandlePool = null;
+            HistoryFrameRTSystem.ClearAll();
+
 #if UNITY_EDITOR
             SceneViewDrawMode.ResetDrawMode();
 #endif
@@ -340,13 +370,37 @@ namespace UnityEngine.Rendering.Universal
             SetupPerFrameShaderConstants();
             XRSystem.SetDisplayMSAASamples((MSAASamples)asset.msaaSampleCount);
 
+            // For CleanHistoryFrameRTSystem to remove unused Cameras
+            // Copy from HDRenderPipeline, which is HDCamera.CleanUnused()
+            // TODO: Should I handle for m_ProbeCameraCache as HDRP?
+            // TODO: Should I handle for m_FrameCount <= 1 skipped RenderSteps as HDRP?
+#if UNITY_EDITOR
+            int newCount = m_FrameCount;
+            foreach (var c in cameras)
+            {
+                if (c.cameraType != CameraType.Preview)
+                {
+                    newCount++;
+                    break;
+                }
+            }
+#else
+            int newCount = Time.frameCount;
+#endif
+            if (newCount != m_FrameCount)
+            {
+                m_FrameCount = newCount;
+
+                HistoryFrameRTSystem.CleanUnused();
+            }
 #if UNITY_EDITOR
             // We do not want to start rendering if URP global settings are not ready (m_globalSettings is null)
             // or been deleted/moved (m_globalSettings is not necessarily null)
             if (m_GlobalSettings == null || UniversalRenderPipelineGlobalSettings.instance == null)
             {
                 m_GlobalSettings = UniversalRenderPipelineGlobalSettings.Ensure();
-                if(m_GlobalSettings == null) return;
+                m_GlobalSettings.EnsureShadersCompiled();
+                if (m_GlobalSettings == null) return;
             }
 #endif
 
@@ -389,7 +443,6 @@ namespace UnityEngine.Rendering.Universal
             }
 
             s_RenderGraph.EndFrame();
-            s_RTHandlePool.PurgeUnusedResources(Time.frameCount);
 
 #if UNITY_2021_1_OR_NEWER
             using (new ProfilingScope(null, Profiling.Pipeline.endContextRendering))
@@ -631,6 +684,14 @@ namespace UnityEngine.Rendering.Universal
                     UpdateTemporalAATargets(ref cameraData);
 
                 RTHandles.SetReferenceSize(cameraData.cameraTargetDescriptor.width, cameraData.cameraTargetDescriptor.height);
+
+                /* 
+                 * TODO: We must check this Security, HDCamera doing this at every begining in "BeginRender" function.
+                 * "Updating RTHandle needs to be done at the beginning of rendering (not during update of HDCamera which happens in batches)
+                 * The reason is that RTHandle will hold data necessary to setup RenderTargets and viewports properly."
+                 */
+                var historyFrameRTSystem = HistoryFrameRTSystem.GetOrCreate(camera);
+                historyFrameRTSystem.SetReferenceSize(cameraData.cameraTargetDescriptor.width, cameraData.cameraTargetDescriptor.height);
 
                 // Do NOT use cameraData after 'InitializeRenderingData'. CameraData state may diverge otherwise.
                 // RenderingData takes a copy of the CameraData.
@@ -1013,6 +1074,18 @@ namespace UnityEngine.Rendering.Universal
 #endif
 
             SupportedRenderingFeatures.active.supportsHDR = pipelineAsset.supportsHDR;
+        }
+
+        void SetRendererDataDefaultRuntimeResources(UniversalRenderPipelineAsset pipelineAsset)
+        {
+            foreach (var data in pipelineAsset.m_RendererDataList)
+            {
+                if (data.GetType() == typeof(UniversalRendererData))
+                {
+                    var uData = data as UniversalRendererData;
+                    uData.defaultRuntimeReources = defaultRuntimeResources;
+                }
+            }
         }
 
         static void InitializeCameraData(Camera camera, UniversalAdditionalCameraData additionalCameraData, bool resolveFinalTarget, out CameraData cameraData)
@@ -1837,6 +1910,7 @@ namespace UnityEngine.Rendering.Universal
                 case TonemappingMode.ACES:
                     eetfMode = (int)tonemapping.acesPreset.value;
                     break;
+                // TODO: GT tonemapping
             }
 
             hdrOutputParameters = new Vector4(eetfMode, hueShift, 0.0f, 0.0f);

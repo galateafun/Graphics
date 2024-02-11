@@ -36,12 +36,18 @@ namespace UnityEngine.Rendering.Universal
         RTHandle m_Depth;
         RTHandle m_InternalLut;
         RTHandle m_MotionVectors;
+        RTHandle m_CameraTargetHandle;
         RTHandle m_FullCoCTexture;
         RTHandle m_HalfCoCTexture;
         RTHandle m_PingTexture;
         RTHandle m_PongTexture;
         RTHandle[] m_BloomMipDown;
         RTHandle[] m_BloomMipUp;
+
+        // DanbaidongBloom
+        RTHandle m_BloomPrefilter;
+        RTHandle m_BloomPrefilterBlur;
+
         RTHandle m_BlendTexture;
         RTHandle m_EdgeColorTexture;
         RTHandle m_EdgeStencilTexture;
@@ -201,8 +207,11 @@ namespace UnityEngine.Rendering.Universal
                 handle?.Release();
             foreach (var handle in m_BloomMipUp)
                 handle?.Release();
+            m_BloomPrefilter?.Release();
+            m_BloomPrefilterBlur?.Release();
             m_ScalingSetupTarget?.Release();
             m_UpscaledTarget?.Release();
+            m_CameraTargetHandle?.Release();
             m_FullCoCTexture?.Release();
             m_HalfCoCTexture?.Release();
             m_PingTexture?.Release();
@@ -632,13 +641,15 @@ namespace UnityEngine.Rendering.Universal
                     }
                     else
                     {
-                        // Get RTHandle alias to use RTHandle apis
+                        // Create RTHandle alias to use RTHandle apis
                         RenderTargetIdentifier cameraTarget = cameraData.targetTexture != null ? new RenderTargetIdentifier(cameraData.targetTexture) : cameraTargetID;
-                        RTHandleStaticHelpers.SetRTHandleStaticWrapper(cameraTarget);
-                        var cameraTargetHandle = RTHandleStaticHelpers.s_RTHandleWrapper;
-
-                        RenderingUtils.FinalBlit(cmd, ref cameraData, GetSource(), cameraTargetHandle, colorLoadAction, RenderBufferStoreAction.Store, m_Materials.uber, 0);
-                        renderer.ConfigureCameraColorTarget(cameraTargetHandle);
+                        if (m_CameraTargetHandle != cameraTarget)
+                        {
+                            m_CameraTargetHandle?.Release();
+                            m_CameraTargetHandle = RTHandles.Alloc(cameraTarget);
+                        }
+                        RenderingUtils.FinalBlit(cmd, ref cameraData, GetSource(), m_CameraTargetHandle, colorLoadAction, RenderBufferStoreAction.Store, m_Materials.uber, 0);
+                        renderer.ConfigureCameraColorTarget(m_CameraTargetHandle);
                     }
                 }
             }
@@ -1083,115 +1094,188 @@ namespace UnityEngine.Rendering.Universal
 
         void SetupBloom(CommandBuffer cmd, RTHandle source, Material uberMaterial)
         {
-            // Start at half-res
-            int downres = 1;
-            switch (m_Bloom.downscale.value)
+            if (m_Bloom.mode.value == BloomMode.BloomDanbaidong)
             {
-                case BloomDownscaleMode.Half:
-                    downres = 1;
-                    break;
-                case BloomDownscaleMode.Quarter:
-                    downres = 2;
-                    break;
-                default:
-                    throw new System.ArgumentOutOfRangeException();
+                // source Tex Size
+                int texWidth = m_Descriptor.width / 4;
+                int texHeight = m_Descriptor.height / 4;
+
+                int iterations = 3;
+                var bloomMaterial = m_Materials.bloom;
+                var danbaidongBloomParams = new Vector4(m_Bloom.threshold.value, m_Bloom.lumRnageScale.value, m_Bloom.preFilterScale.value, m_Bloom.intensity.value);
+                bloomMaterial.SetVector(ShaderConstants._Bloom_Danbaidong_Params, danbaidongBloomParams);
+                bloomMaterial.SetVector(ShaderConstants._Bloom_Danbaidong_BlurCompositeWeight, m_Bloom.blurCompositeWeight.value);
+                bloomMaterial.SetColor(ShaderConstants._Bloom_Danbaidong_ColorTint, m_Bloom.tint.value);
+
+
+                // preFilter
+                RenderTextureDescriptor desc = GetCompatibleDescriptor(texWidth, texHeight, m_DefaultHDRFormat);
+                RenderingUtils.ReAllocateIfNeeded(ref m_BloomPrefilter, desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: "_PreFilteredRT");
+                Blitter.BlitCameraTexture(cmd, source, m_BloomPrefilter, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 4);
+
+                // pre Blur
+                RenderingUtils.ReAllocateIfNeeded(ref m_BloomPrefilterBlur, desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: "_PreFilteredRT_TempBlur");
+
+                cmd.SetGlobalVector(ShaderConstants._Bloom_Danbaidong_BlurScaler, new Vector4(1, 0, 0, 0));
+                Blitter.BlitCameraTexture(cmd, m_BloomPrefilter, m_BloomPrefilterBlur, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 6);
+
+                cmd.SetGlobalVector(ShaderConstants._Bloom_Danbaidong_BlurScaler, new Vector4(0, 1, 0, 0));
+                Blitter.BlitCameraTexture(cmd, m_BloomPrefilterBlur, m_BloomPrefilter, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 6);
+
+
+                // downSample
+                int lastWidth = texWidth, lastHeight = texHeight;
+                RTHandle last = m_BloomPrefilter;
+                for (var level = 0; level < iterations; level++)
+                {
+                    lastWidth /= 2; lastHeight /= 2;
+
+                    desc.width = lastWidth;
+                    desc.height = lastHeight;
+                    RenderingUtils.ReAllocateIfNeeded(ref m_BloomMipUp[level], desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: m_BloomMipUp[level].name);
+                    RenderingUtils.ReAllocateIfNeeded(ref m_BloomMipDown[level], desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: m_BloomMipDown[level].name);
+
+                    Blitter.BlitCameraTexture(cmd, last, m_BloomMipDown[level], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 5);
+
+                    last = m_BloomMipDown[level];
+                }
+
+                // blur mips
+                for (var level = 0; level < iterations; level++)
+                {
+                    cmd.SetGlobalVector(ShaderConstants._Bloom_Danbaidong_BlurScaler, new Vector4(1, 0, 0, 0));
+                    Blitter.BlitCameraTexture(cmd, m_BloomMipDown[level], m_BloomMipUp[level], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 7 + level);
+
+                    cmd.SetGlobalVector(ShaderConstants._Bloom_Danbaidong_BlurScaler, new Vector4(0, 1, 0, 0));
+                    Blitter.BlitCameraTexture(cmd, m_BloomMipUp[level], m_BloomMipDown[level], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 7 + level);
+                }
+
+                // upsample once
+                for (var level = 0; level < iterations; level++)
+                {
+                    cmd.SetGlobalTexture(m_BloomMipDown[level].name, m_BloomMipDown[level]);
+                }
+
+                Blitter.BlitCameraTexture(cmd, m_BloomPrefilter, m_BloomPrefilterBlur, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 10);
+
+
+                cmd.SetGlobalTexture(ShaderConstants._Bloom_Texture, m_BloomPrefilterBlur);
+                uberMaterial.SetVector(ShaderConstants._Bloom_Danbaidong_Params, danbaidongBloomParams);
+                uberMaterial.EnableKeyword(ShaderKeywordStrings.BloomDanbaidong);
+
             }
-            int tw = m_Descriptor.width >> downres;
-            int th = m_Descriptor.height >> downres;
+            else if (m_Bloom.mode.value == BloomMode.BloomURP)
+            {// Start at half-res
+                int downres = 1;
+                switch (m_Bloom.downscale.value)
+                {
+                    case BloomDownscaleMode.Half:
+                        downres = 1;
+                        break;
+                    case BloomDownscaleMode.Quarter:
+                        downres = 2;
+                        break;
+                    default:
+                        throw new System.ArgumentOutOfRangeException();
+                }
+                int tw = m_Descriptor.width >> downres;
+                int th = m_Descriptor.height >> downres;
 
-            // Determine the iteration count
-            int maxSize = Mathf.Max(tw, th);
-            int iterations = Mathf.FloorToInt(Mathf.Log(maxSize, 2f) - 1);
-            int mipCount = Mathf.Clamp(iterations, 1, m_Bloom.maxIterations.value);
+                // Determine the iteration count
+                int maxSize = Mathf.Max(tw, th);
+                int iterations = Mathf.FloorToInt(Mathf.Log(maxSize, 2f) - 1);
+                int mipCount = Mathf.Clamp(iterations, 1, m_Bloom.maxIterations.value);
 
-            // Pre-filtering parameters
-            float clamp = m_Bloom.clamp.value;
-            float threshold = Mathf.GammaToLinearSpace(m_Bloom.threshold.value);
-            float thresholdKnee = threshold * 0.5f; // Hardcoded soft knee
+                // Pre-filtering parameters
+                float clamp = m_Bloom.clamp.value;
+                float threshold = Mathf.GammaToLinearSpace(m_Bloom.threshold.value);
+                float thresholdKnee = threshold * 0.5f; // Hardcoded soft knee
 
-            // Material setup
-            float scatter = Mathf.Lerp(0.05f, 0.95f, m_Bloom.scatter.value);
-            var bloomMaterial = m_Materials.bloom;
-            bloomMaterial.SetVector(ShaderConstants._Params, new Vector4(scatter, clamp, threshold, thresholdKnee));
-            CoreUtils.SetKeyword(bloomMaterial, ShaderKeywordStrings.BloomHQ, m_Bloom.highQualityFiltering.value);
-            CoreUtils.SetKeyword(bloomMaterial, ShaderKeywordStrings.UseRGBM, m_UseRGBM);
+                // Material setup
+                float scatter = Mathf.Lerp(0.05f, 0.95f, m_Bloom.scatter.value);
+                var bloomMaterial = m_Materials.bloom;
+                bloomMaterial.SetVector(ShaderConstants._Params, new Vector4(scatter, clamp, threshold, thresholdKnee));
+                CoreUtils.SetKeyword(bloomMaterial, ShaderKeywordStrings.BloomHQ, m_Bloom.highQualityFiltering.value);
+                CoreUtils.SetKeyword(bloomMaterial, ShaderKeywordStrings.UseRGBM, m_UseRGBM);
 
-            // Prefilter
-            var desc = GetCompatibleDescriptor(tw, th, m_DefaultHDRFormat);
-            for (int i = 0; i < mipCount; i++)
-            {
-                RenderingUtils.ReAllocateIfNeeded(ref m_BloomMipUp[i], desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: m_BloomMipUp[i].name);
-                RenderingUtils.ReAllocateIfNeeded(ref m_BloomMipDown[i], desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: m_BloomMipDown[i].name);
-                desc.width = Mathf.Max(1, desc.width >> 1);
-                desc.height = Mathf.Max(1, desc.height >> 1);
+                // Prefilter
+                var desc = GetCompatibleDescriptor(tw, th, m_DefaultHDRFormat);
+                for (int i = 0; i < mipCount; i++)
+                {
+                    RenderingUtils.ReAllocateIfNeeded(ref m_BloomMipUp[i], desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: m_BloomMipUp[i].name);
+                    RenderingUtils.ReAllocateIfNeeded(ref m_BloomMipDown[i], desc, FilterMode.Bilinear, TextureWrapMode.Clamp, name: m_BloomMipDown[i].name);
+                    desc.width = Mathf.Max(1, desc.width >> 1);
+                    desc.height = Mathf.Max(1, desc.height >> 1);
+                }
+
+                Blitter.BlitCameraTexture(cmd, source, m_BloomMipDown[0], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 0);
+
+                // Downsample - gaussian pyramid
+                var lastDown = m_BloomMipDown[0];
+                for (int i = 1; i < mipCount; i++)
+                {
+                    // Classic two pass gaussian blur - use mipUp as a temporary target
+                    //   First pass does 2x downsampling + 9-tap gaussian
+                    //   Second pass does 9-tap gaussian using a 5-tap filter + bilinear filtering
+                    Blitter.BlitCameraTexture(cmd, lastDown, m_BloomMipUp[i], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 1);
+                    Blitter.BlitCameraTexture(cmd, m_BloomMipUp[i], m_BloomMipDown[i], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 2);
+
+                    lastDown = m_BloomMipDown[i];
+                }
+
+                // Upsample (bilinear by default, HQ filtering does bicubic instead
+                for (int i = mipCount - 2; i >= 0; i--)
+                {
+                    var lowMip = (i == mipCount - 2) ? m_BloomMipDown[i + 1] : m_BloomMipUp[i + 1];
+                    var highMip = m_BloomMipDown[i];
+                    var dst = m_BloomMipUp[i];
+
+                    cmd.SetGlobalTexture(ShaderConstants._SourceTexLowMip, lowMip);
+                    Blitter.BlitCameraTexture(cmd, highMip, dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 3);
+                }
+
+                // Setup bloom on uber
+                var tint = m_Bloom.tint.value.linear;
+                var luma = ColorUtils.Luminance(tint);
+                tint = luma > 0f ? tint * (1f / luma) : Color.white;
+
+                var bloomParams = new Vector4(m_Bloom.intensity.value, tint.r, tint.g, tint.b);
+                uberMaterial.SetVector(ShaderConstants._Bloom_Params, bloomParams);
+                uberMaterial.SetFloat(ShaderConstants._Bloom_RGBM, m_UseRGBM ? 1f : 0f);
+
+                cmd.SetGlobalTexture(ShaderConstants._Bloom_Texture, m_BloomMipUp[0]);
+
+                // Setup lens dirtiness on uber
+                // Keep the aspect ratio correct & center the dirt texture, we don't want it to be
+                // stretched or squashed
+                var dirtTexture = m_Bloom.dirtTexture.value == null ? Texture2D.blackTexture : m_Bloom.dirtTexture.value;
+                float dirtRatio = dirtTexture.width / (float)dirtTexture.height;
+                float screenRatio = m_Descriptor.width / (float)m_Descriptor.height;
+                var dirtScaleOffset = new Vector4(1f, 1f, 0f, 0f);
+                float dirtIntensity = m_Bloom.dirtIntensity.value;
+
+                if (dirtRatio > screenRatio)
+                {
+                    dirtScaleOffset.x = screenRatio / dirtRatio;
+                    dirtScaleOffset.z = (1f - dirtScaleOffset.x) * 0.5f;
+                }
+                else if (screenRatio > dirtRatio)
+                {
+                    dirtScaleOffset.y = dirtRatio / screenRatio;
+                    dirtScaleOffset.w = (1f - dirtScaleOffset.y) * 0.5f;
+                }
+
+                uberMaterial.SetVector(ShaderConstants._LensDirt_Params, dirtScaleOffset);
+                uberMaterial.SetFloat(ShaderConstants._LensDirt_Intensity, dirtIntensity);
+                uberMaterial.SetTexture(ShaderConstants._LensDirt_Texture, dirtTexture);
+
+                // Keyword setup - a bit convoluted as we're trying to save some variants in Uber...
+                if (m_Bloom.highQualityFiltering.value)
+                    uberMaterial.EnableKeyword(dirtIntensity > 0f ? ShaderKeywordStrings.BloomHQDirt : ShaderKeywordStrings.BloomHQ);
+                else
+                    uberMaterial.EnableKeyword(dirtIntensity > 0f ? ShaderKeywordStrings.BloomLQDirt : ShaderKeywordStrings.BloomLQ);
+
             }
-
-            Blitter.BlitCameraTexture(cmd, source, m_BloomMipDown[0], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 0);
-
-            // Downsample - gaussian pyramid
-            var lastDown = m_BloomMipDown[0];
-            for (int i = 1; i < mipCount; i++)
-            {
-                // Classic two pass gaussian blur - use mipUp as a temporary target
-                //   First pass does 2x downsampling + 9-tap gaussian
-                //   Second pass does 9-tap gaussian using a 5-tap filter + bilinear filtering
-                Blitter.BlitCameraTexture(cmd, lastDown, m_BloomMipUp[i], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 1);
-                Blitter.BlitCameraTexture(cmd, m_BloomMipUp[i], m_BloomMipDown[i], RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 2);
-
-                lastDown = m_BloomMipDown[i];
-            }
-
-            // Upsample (bilinear by default, HQ filtering does bicubic instead
-            for (int i = mipCount - 2; i >= 0; i--)
-            {
-                var lowMip = (i == mipCount - 2) ? m_BloomMipDown[i + 1] : m_BloomMipUp[i + 1];
-                var highMip = m_BloomMipDown[i];
-                var dst = m_BloomMipUp[i];
-
-                cmd.SetGlobalTexture(ShaderConstants._SourceTexLowMip, lowMip);
-                Blitter.BlitCameraTexture(cmd, highMip, dst, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, bloomMaterial, 3);
-            }
-
-            // Setup bloom on uber
-            var tint = m_Bloom.tint.value.linear;
-            var luma = ColorUtils.Luminance(tint);
-            tint = luma > 0f ? tint * (1f / luma) : Color.white;
-
-            var bloomParams = new Vector4(m_Bloom.intensity.value, tint.r, tint.g, tint.b);
-            uberMaterial.SetVector(ShaderConstants._Bloom_Params, bloomParams);
-            uberMaterial.SetFloat(ShaderConstants._Bloom_RGBM, m_UseRGBM ? 1f : 0f);
-
-            cmd.SetGlobalTexture(ShaderConstants._Bloom_Texture, m_BloomMipUp[0]);
-
-            // Setup lens dirtiness on uber
-            // Keep the aspect ratio correct & center the dirt texture, we don't want it to be
-            // stretched or squashed
-            var dirtTexture = m_Bloom.dirtTexture.value == null ? Texture2D.blackTexture : m_Bloom.dirtTexture.value;
-            float dirtRatio = dirtTexture.width / (float)dirtTexture.height;
-            float screenRatio = m_Descriptor.width / (float)m_Descriptor.height;
-            var dirtScaleOffset = new Vector4(1f, 1f, 0f, 0f);
-            float dirtIntensity = m_Bloom.dirtIntensity.value;
-
-            if (dirtRatio > screenRatio)
-            {
-                dirtScaleOffset.x = screenRatio / dirtRatio;
-                dirtScaleOffset.z = (1f - dirtScaleOffset.x) * 0.5f;
-            }
-            else if (screenRatio > dirtRatio)
-            {
-                dirtScaleOffset.y = dirtRatio / screenRatio;
-                dirtScaleOffset.w = (1f - dirtScaleOffset.y) * 0.5f;
-            }
-
-            uberMaterial.SetVector(ShaderConstants._LensDirt_Params, dirtScaleOffset);
-            uberMaterial.SetFloat(ShaderConstants._LensDirt_Intensity, dirtIntensity);
-            uberMaterial.SetTexture(ShaderConstants._LensDirt_Texture, dirtTexture);
-
-            // Keyword setup - a bit convoluted as we're trying to save some variants in Uber...
-            if (m_Bloom.highQualityFiltering.value)
-                uberMaterial.EnableKeyword(dirtIntensity > 0f ? ShaderKeywordStrings.BloomHQDirt : ShaderKeywordStrings.BloomHQ);
-            else
-                uberMaterial.EnableKeyword(dirtIntensity > 0f ? ShaderKeywordStrings.BloomLQDirt : ShaderKeywordStrings.BloomLQ);
         }
 
 #endregion
@@ -1307,6 +1391,8 @@ namespace UnityEngine.Rendering.Universal
                 {
                     case TonemappingMode.Neutral: material.EnableKeyword(ShaderKeywordStrings.TonemapNeutral); break;
                     case TonemappingMode.ACES: material.EnableKeyword(ShaderKeywordStrings.TonemapACES); break;
+                    case TonemappingMode.ACESSimpleVer: material.EnableKeyword(ShaderKeywordStrings.TonemapACESSampleVer); break;
+                    case TonemappingMode.GranTurismo: material.EnableKeyword(ShaderKeywordStrings.TonemapGT); break;
                     default: break; // None
                 }
             }
@@ -1556,10 +1642,13 @@ namespace UnityEngine.Rendering.Universal
             }
             else
             {
-                // Get RTHandle alias to use RTHandle apis
-                RTHandleStaticHelpers.SetRTHandleStaticWrapper(cameraTarget);
-                var cameraTargetHandle = RTHandleStaticHelpers.s_RTHandleWrapper;
-                RenderingUtils.FinalBlit(cmd, ref cameraData, sourceTex, cameraTargetHandle, colorLoadAction, RenderBufferStoreAction.Store, material, 0);
+                // Create RTHandle alias to use RTHandle apis
+                if (m_CameraTargetHandle != cameraTarget)
+                {
+                    m_CameraTargetHandle?.Release();
+                    m_CameraTargetHandle = RTHandles.Alloc(cameraTarget);
+                }
+                RenderingUtils.FinalBlit(cmd, ref cameraData, sourceTex, m_CameraTargetHandle, colorLoadAction, RenderBufferStoreAction.Store, material, 0);
             }
         }
 
@@ -1667,6 +1756,12 @@ namespace UnityEngine.Rendering.Universal
             public static readonly int _Bloom_Params = Shader.PropertyToID("_Bloom_Params");
             public static readonly int _Bloom_RGBM = Shader.PropertyToID("_Bloom_RGBM");
             public static readonly int _Bloom_Texture = Shader.PropertyToID("_Bloom_Texture");
+
+            public static readonly int _Bloom_Danbaidong_Params = Shader.PropertyToID("_Bloom_Danbaidong_Params");
+            public static readonly int _Bloom_Danbaidong_ColorTint = Shader.PropertyToID("_Bloom_Danbaidong_ColorTint");
+            public static readonly int _Bloom_Danbaidong_BlurScaler = Shader.PropertyToID("_Bloom_Danbaidong_BlurScaler");
+            public static readonly int _Bloom_Danbaidong_BlurCompositeWeight = Shader.PropertyToID("_Bloom_Danbaidong_BlurCompositeWeight");
+
             public static readonly int _LensDirt_Texture = Shader.PropertyToID("_LensDirt_Texture");
             public static readonly int _LensDirt_Params = Shader.PropertyToID("_LensDirt_Params");
             public static readonly int _LensDirt_Intensity = Shader.PropertyToID("_LensDirt_Intensity");

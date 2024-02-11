@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using UnityEngine.Experimental.Rendering;
-using UnityEngine.Experimental.Rendering.RenderGraphModule;
 
 namespace UnityEngine.Rendering.Universal
 {
@@ -512,7 +511,13 @@ namespace UnityEngine.Rendering.Universal
         /// <returns></returns>
         internal static bool RTHandleNeedsReAlloc(
             RTHandle handle,
-            in TextureDesc descriptor,
+            in RenderTextureDescriptor descriptor,
+            FilterMode filterMode,
+            TextureWrapMode wrapMode,
+            bool isShadowMap,
+            int anisoLevel,
+            float mipMapBias,
+            string name,
             bool scaled)
         {
             if (handle == null || handle.rt == null)
@@ -522,21 +527,21 @@ namespace UnityEngine.Rendering.Universal
             if (!scaled && (handle.rt.width != descriptor.width || handle.rt.height != descriptor.height))
                 return true;
             return
-                (DepthBits)handle.rt.descriptor.depthBufferBits != descriptor.depthBufferBits ||
-                (handle.rt.descriptor.depthBufferBits == (int)DepthBits.None && !descriptor.isShadowMap && handle.rt.descriptor.graphicsFormat != descriptor.colorFormat) ||
+                handle.rt.descriptor.depthBufferBits != descriptor.depthBufferBits ||
+                (handle.rt.descriptor.depthBufferBits == (int)DepthBits.None && !isShadowMap && handle.rt.descriptor.graphicsFormat != descriptor.graphicsFormat) ||
                 handle.rt.descriptor.dimension != descriptor.dimension ||
                 handle.rt.descriptor.enableRandomWrite != descriptor.enableRandomWrite ||
                 handle.rt.descriptor.useMipMap != descriptor.useMipMap ||
                 handle.rt.descriptor.autoGenerateMips != descriptor.autoGenerateMips ||
-                (MSAASamples)handle.rt.descriptor.msaaSamples != descriptor.msaaSamples ||
-                handle.rt.descriptor.bindMS != descriptor.bindTextureMS ||
+                handle.rt.descriptor.msaaSamples != descriptor.msaaSamples ||
+                handle.rt.descriptor.bindMS != descriptor.bindMS ||
                 handle.rt.descriptor.useDynamicScale != descriptor.useDynamicScale ||
                 handle.rt.descriptor.memoryless != descriptor.memoryless ||
-                handle.rt.filterMode != descriptor.filterMode ||
-                handle.rt.wrapMode != descriptor.wrapMode ||
-                handle.rt.anisoLevel != descriptor.anisoLevel ||
-                handle.rt.mipMapBias != descriptor.mipMapBias ||
-                handle.name != descriptor.name;
+                handle.rt.filterMode != filterMode ||
+                handle.rt.wrapMode != wrapMode ||
+                handle.rt.anisoLevel != anisoLevel ||
+                handle.rt.mipMapBias != mipMapBias ||
+                handle.name != name;
         }
 
         /// <summary>
@@ -591,24 +596,11 @@ namespace UnityEngine.Rendering.Universal
             float mipMapBias = 0,
             string name = "")
         {
-            TextureDesc requestRTDesc = RTHandleResourcePool.CreateTextureDesc(descriptor, TextureSizeMode.Explicit, anisoLevel, 0, filterMode, wrapMode, name);
-            if (RTHandleNeedsReAlloc(handle, requestRTDesc, false))
+            if (RTHandleNeedsReAlloc(handle, descriptor, filterMode, wrapMode, isShadowMap, anisoLevel, mipMapBias, name, false))
             {
-                if (handle != null && handle.rt != null)
-                {
-                    TextureDesc currentRTDesc = RTHandleResourcePool.CreateTextureDesc(handle.rt.descriptor, TextureSizeMode.Explicit, handle.rt.anisoLevel, handle.rt.mipMapBias, handle.rt.filterMode, handle.rt.wrapMode, handle.name);
-                    UniversalRenderPipeline.s_RTHandlePool.AddResourceToPool(currentRTDesc, handle, Time.frameCount);
-                }
-
-                if (UniversalRenderPipeline.s_RTHandlePool.TryGetResource(requestRTDesc, out handle))
-                {
-                    return true;
-                }
-                else
-                {
-                    handle = RTHandles.Alloc(descriptor, filterMode, wrapMode, isShadowMap, anisoLevel, mipMapBias, name);
-                    return true;
-                }
+                handle?.Release();
+                handle = RTHandles.Alloc(descriptor, filterMode, wrapMode, isShadowMap, anisoLevel, mipMapBias, name);
+                return true;
             }
             return false;
         }
@@ -638,24 +630,11 @@ namespace UnityEngine.Rendering.Universal
             string name = "")
         {
             var usingConstantScale = handle != null && handle.useScaling && handle.scaleFactor == scaleFactor;
-            TextureDesc requestRTDesc = RTHandleResourcePool.CreateTextureDesc(descriptor, TextureSizeMode.Scale, anisoLevel, 0, filterMode, wrapMode);
-            if (!usingConstantScale || RTHandleNeedsReAlloc(handle, requestRTDesc, true))
+            if (!usingConstantScale || RTHandleNeedsReAlloc(handle, descriptor, filterMode, wrapMode, isShadowMap, anisoLevel, mipMapBias, name, true))
             {
-                if (handle != null && handle.rt != null)
-                {
-                    TextureDesc currentRTDesc = RTHandleResourcePool.CreateTextureDesc(handle.rt.descriptor, TextureSizeMode.Scale, handle.rt.anisoLevel, handle.rt.mipMapBias, handle.rt.filterMode, handle.rt.wrapMode);
-                    UniversalRenderPipeline.s_RTHandlePool.AddResourceToPool(currentRTDesc, handle, Time.frameCount);
-                }
-
-                if (UniversalRenderPipeline.s_RTHandlePool.TryGetResource(requestRTDesc, out handle))
-                {
-                    return true;
-                }
-                else
-                {
-                    handle = RTHandles.Alloc(scaleFactor, descriptor, filterMode, wrapMode, isShadowMap, anisoLevel, mipMapBias, name);
-                    return true;
-                }
+                handle?.Release();
+                handle = RTHandles.Alloc(scaleFactor, descriptor, filterMode, wrapMode, isShadowMap, anisoLevel, mipMapBias, name);
+                return true;
             }
             return false;
         }
@@ -685,43 +664,14 @@ namespace UnityEngine.Rendering.Universal
             string name = "")
         {
             var usingScaleFunction = handle != null && handle.useScaling && handle.scaleFactor == Vector2.zero;
-            TextureDesc requestRTDesc = RTHandleResourcePool.CreateTextureDesc(descriptor, TextureSizeMode.Functor, anisoLevel, 0, filterMode, wrapMode);
-            if (!usingScaleFunction || RTHandleNeedsReAlloc(handle, requestRTDesc, true))
+            if (!usingScaleFunction || RTHandleNeedsReAlloc(handle, descriptor, filterMode, wrapMode, isShadowMap, anisoLevel, mipMapBias, name, true))
             {
-                if (handle != null && handle.rt != null)
-                {
-                    TextureDesc currentRTDesc = RTHandleResourcePool.CreateTextureDesc(handle.rt.descriptor, TextureSizeMode.Functor, handle.rt.anisoLevel, handle.rt.mipMapBias, handle.rt.filterMode, handle.rt.wrapMode);
-                    UniversalRenderPipeline.s_RTHandlePool.AddResourceToPool(currentRTDesc, handle, Time.frameCount);
-                }
-
-                if (UniversalRenderPipeline.s_RTHandlePool.TryGetResource(requestRTDesc, out handle))
-                {
-                    return true;
-                }
-                else
-                {
-                    handle = RTHandles.Alloc(scaleFunc, descriptor, filterMode, wrapMode, isShadowMap, anisoLevel, mipMapBias, name);
-                    return true;
-                }
+                handle?.Release();
+                handle = RTHandles.Alloc(scaleFunc, descriptor, filterMode, wrapMode, isShadowMap, anisoLevel, mipMapBias, name);
+                return true;
             }
+
             return false;
-        }
-
-        /// <summary>
-        /// Resize the rthandle pool's max stale resource capacity. The default value is 32.
-        /// Increasing the capacity may have a negative impact on the memory usage(dued to staled resources in pool).
-        /// Increasing the capacity may improve runtime performance (by reducing the runtime RTHandle realloc count in multi view/multi camera setup).
-        /// Setting capacity will purge the current pool. It is recommended to setup the capacity upfront and not changing it during the runtime.
-        /// </summary>
-        /// <param name="capacity">Max capacity to set</param>
-        /// <returns> Return true if set successfully. Return false if URP is not initialized and pool does not exist yet. </returns>
-        public static bool SetMaxRTHandlePoolCapacity(int capacity)
-        {
-            if (UniversalRenderPipeline.s_RTHandlePool == null)
-                return false;
-
-            UniversalRenderPipeline.s_RTHandlePool.staleResourceCapacity = capacity;
-            return true;
         }
 
         /// <summary>
@@ -770,5 +720,109 @@ namespace UnityEngine.Rendering.Universal
                 settings.SetShaderPassName(i, shaderTagIdList[i]);
             return settings;
         }
+
+        /// <summary>
+        /// PackedMipChainInfo from HDRP HDUtils.cs
+        /// </summary>
+        internal struct PackedMipChainInfo
+        {
+            public Vector2Int textureSize;
+            public int mipLevelCount;
+            public Vector2Int[] mipLevelSizes;
+            public Vector2Int[] mipLevelOffsets;
+
+            private Vector2 cachedTextureScale;
+            private Vector2Int cachedHardwareTextureSize;
+
+            private bool m_OffsetBufferWillNeedUpdate;
+
+            public void Allocate()
+            {
+                mipLevelOffsets = new Vector2Int[15];
+                mipLevelSizes = new Vector2Int[15];
+                m_OffsetBufferWillNeedUpdate = true;
+            }
+
+            // We pack all MIP levels into the top MIP level to avoid the Pow2 MIP chain restriction.
+            // We compute the required size iteratively.
+            // This function is NOT fast, but it is illustrative, and can be optimized later.
+            public void ComputePackedMipChainInfo(Vector2Int viewportSize)
+            {
+                bool isHardwareDrsOn = DynamicResolutionHandler.instance.HardwareDynamicResIsEnabled();
+                Vector2Int hardwareTextureSize = isHardwareDrsOn ? DynamicResolutionHandler.instance.ApplyScalesOnSize(viewportSize) : viewportSize;
+                Vector2 textureScale = isHardwareDrsOn ? new Vector2((float)viewportSize.x / (float)hardwareTextureSize.x, (float)viewportSize.y / (float)hardwareTextureSize.y) : new Vector2(1.0f, 1.0f);
+
+                // No work needed.
+                if (cachedHardwareTextureSize == hardwareTextureSize && cachedTextureScale == textureScale)
+                    return;
+
+                cachedHardwareTextureSize = hardwareTextureSize;
+                cachedTextureScale = textureScale;
+
+                mipLevelSizes[0] = hardwareTextureSize;
+                mipLevelOffsets[0] = Vector2Int.zero;
+
+                int mipLevel = 0;
+                Vector2Int mipSize = hardwareTextureSize;
+
+                do
+                {
+                    mipLevel++;
+
+                    // Round up.
+                    mipSize.x = Math.Max(1, (mipSize.x + 1) >> 1);
+                    mipSize.y = Math.Max(1, (mipSize.y + 1) >> 1);
+
+                    mipLevelSizes[mipLevel] = mipSize;
+
+                    Vector2Int prevMipBegin = mipLevelOffsets[mipLevel - 1];
+                    Vector2Int prevMipEnd = prevMipBegin + mipLevelSizes[mipLevel - 1];
+
+                    Vector2Int mipBegin = new Vector2Int();
+
+                    if ((mipLevel & 1) != 0) // Odd
+                    {
+                        mipBegin.x = prevMipBegin.x;
+                        mipBegin.y = prevMipEnd.y;
+                    }
+                    else // Even
+                    {
+                        mipBegin.x = prevMipEnd.x;
+                        mipBegin.y = prevMipBegin.y;
+                    }
+
+                    mipLevelOffsets[mipLevel] = mipBegin;
+
+                    hardwareTextureSize.x = Math.Max(hardwareTextureSize.x, mipBegin.x + mipSize.x);
+                    hardwareTextureSize.y = Math.Max(hardwareTextureSize.y, mipBegin.y + mipSize.y);
+                }
+                while ((mipSize.x > 1) || (mipSize.y > 1));
+
+                textureSize = new Vector2Int(
+                    (int)Mathf.Ceil((float)hardwareTextureSize.x * textureScale.x), (int)Mathf.Ceil((float)hardwareTextureSize.y * textureScale.y));
+
+                mipLevelCount = mipLevel + 1;
+                m_OffsetBufferWillNeedUpdate = true;
+            }
+
+            public ComputeBuffer GetOffsetBufferData(ComputeBuffer mipLevelOffsetsBuffer)
+            {
+                if (m_OffsetBufferWillNeedUpdate)
+                {
+                    mipLevelOffsetsBuffer.SetData(mipLevelOffsets);
+                    m_OffsetBufferWillNeedUpdate = false;
+                }
+
+                return mipLevelOffsetsBuffer;
+            }
+        }
+
+        /// <summary>
+        /// Compute kernel size.
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <returns></returns>
+        internal static int DivRoundUp(int x, int y) => (x + y - 1) / y;
     }
 }
