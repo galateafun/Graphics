@@ -23,6 +23,13 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         {
             base.Setup(ref context);
             context.AddAssetDependency(kSourceCodeGuid, AssetCollection.Flags.SourceDependency);
+#if HAS_VFX_GRAPH
+            var universalRPType = typeof(UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset);
+            if (TargetsVFX() && !context.HasCustomEditorForRenderPipeline(universalRPType))
+            {
+                context.AddCustomEditorForRenderPipeline(typeof(VFXGenericShaderGraphMaterialGUI).FullName, universalRPType);
+            }
+#endif
             context.AddSubShader(PostProcessSubShader(SubShaders.SpriteLit(target)));
         }
 
@@ -254,10 +261,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         #region Includes
         static class SpriteLitIncludes
         {
-            const string kSpriteUnlitPass = "Packages/com.unity.render-pipelines.danbaidong/Editor/2D/ShaderGraph/Includes/SpriteUnlitPass.hlsl";
-            const string k2DNormal = "Packages/com.unity.render-pipelines.danbaidong/Shaders/2D/Include/NormalsRenderingShared.hlsl";
-            const string kSpriteNormalPass = "Packages/com.unity.render-pipelines.danbaidong/Editor/2D/ShaderGraph/Includes/SpriteNormalPass.hlsl";
-            const string kSpriteForwardPass = "Packages/com.unity.render-pipelines.danbaidong/Editor/2D/ShaderGraph/Includes/SpriteForwardPass.hlsl";
+            const string kSpriteUnlitPass = "Packages/com.unity.render-pipelines.universal/Editor/2D/ShaderGraph/Includes/SpriteUnlitPass.hlsl";
+            const string k2DNormal = "Packages/com.unity.render-pipelines.universal/Shaders/2D/Include/NormalsRenderingShared.hlsl";
+            const string kSpriteNormalPass = "Packages/com.unity.render-pipelines.universal/Editor/2D/ShaderGraph/Includes/SpriteNormalPass.hlsl";
+            const string kSpriteForwardPass = "Packages/com.unity.render-pipelines.universal/Editor/2D/ShaderGraph/Includes/SpriteForwardPass.hlsl";
 
             public static IncludeCollection Lit = new IncludeCollection
             {

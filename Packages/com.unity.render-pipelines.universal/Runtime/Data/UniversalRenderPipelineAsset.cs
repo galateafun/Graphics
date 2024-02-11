@@ -597,7 +597,7 @@ namespace UnityEngine.Rendering.Universal
         [NonSerialized]
         internal UniversalRenderPipelineEditorResources m_EditorResourcesAsset;
 
-        public static readonly string packagePath = "Packages/com.unity.render-pipelines.danbaidong";
+        public static readonly string packagePath = "Packages/com.unity.render-pipelines.universal";
         public static readonly string editorResourcesGUID = "74516a1559465024cbcc83aa38097552";
 
         public static UniversalRenderPipelineAsset Create(ScriptableRendererData rendererData = null)
@@ -1482,7 +1482,7 @@ namespace UnityEngine.Rendering.Universal
         {
             get { return m_UseFastSRGBLinearConversion; }
         }
-        
+
         /// <summary>
         /// Returns true if Data Driven Lens Flare are supported by this asset, false otherwise.
         /// </summary>

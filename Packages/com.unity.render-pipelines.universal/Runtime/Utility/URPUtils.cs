@@ -18,7 +18,7 @@ namespace UnityEngine.Rendering.Universal
 
         // We need these at runtime for RenderPipelineResources upgrade
         internal static string GetURPRenderPipelinePath()
-            => "Packages/com.unity.render-pipelines.danbaidong/";
+            => "Packages/com.unity.render-pipelines.universal/";
 
         internal static string GetCorePath()
             => "Packages/com.unity.render-pipelines.core/";

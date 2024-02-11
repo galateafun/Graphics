@@ -25,7 +25,7 @@ Shader "Character/LitFur"
             [HDR]_SelfLight					("SelfLight", Color) 					= (1,1,1,1)
             _MainLightColorLerp				("Unity Light or SelfLight", Range(0,1))= 0
             _DirectOcclusion				("DirectOcclusion",Range(0,1)) 			= 0.1
-            
+
             [Title(Shadow)]
             _ShadowColor        			("ShadowColor", Color)        			= (0,0,0,1)
             _ShadowOffset       			("ShadowOffset",Range(-1,1))  			= 0.0
@@ -86,7 +86,7 @@ Shader "Character/LitFur"
 
 		// Other Settings
 		[Space(10)]
-        [Enum(UnityEngine.Rendering.CullMode)] 
+        [Enum(UnityEngine.Rendering.CullMode)]
         _Cull								("Cull Mode", Float) 					= 2
 		_AlphaClip							("AlphaClip", Range(0, 1)) 				= 1
     }
@@ -144,7 +144,7 @@ Shader "Character/LitFur"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
-            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
 
 			// -------------------------------------
             // Unity defined keywords
@@ -160,15 +160,15 @@ Shader "Character/LitFur"
             // GPU Instancing
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
-            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
 			// -------------------------------------
             // Includes
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Lighting.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityGBuffer.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DanbaidongToon.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityGBuffer.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DanbaidongToon.hlsl"
 
 
 
@@ -217,14 +217,14 @@ Shader "Character/LitFur"
 			float _FurCLipMax;
 
             CBUFFER_END
-			
+
 			TEXTURE2D(_BaseMap);
 			SAMPLER(sampler_BaseMap);
 
             TEXTURE2D(_PBRMask);
 			SAMPLER(sampler_PBRMask);
 		    TEXTURE2D(_NormalMap);
-			SAMPLER(sampler_NormalMap);	
+			SAMPLER(sampler_NormalMap);
 
 			TEXTURE2D(_ILMMapSpecType);
 			TEXTURE2D(_ILMMapAO);
@@ -244,7 +244,7 @@ Shader "Character/LitFur"
 			TEXTURE2D(_FurNoise);
 			SAMPLER(sampler_FurNoise);
 
-			struct a2v 
+			struct a2v
 			{
 				float4 vertex 	:POSITION;
 				float3 normal 	:NORMAL;
@@ -253,9 +253,9 @@ Shader "Character/LitFur"
 				float4 uv0 		:TEXCOORD0;
 				float4 uv1 		:TEXCOORD1;
 				float4 uv2 		:TEXCOORD2;
-				UNITY_VERTEX_INPUT_INSTANCE_ID 
+				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
-			struct v2f 
+			struct v2f
 			{
 				float4 positionHCS		:SV_POSITION;
                 float3 positionWS   	:TEXCOORD0;
@@ -292,7 +292,7 @@ Shader "Character/LitFur"
 
 				o.uv.xy = v.uv0.xy;
 				o.uv.zw = TRANSFORM_TEX(v.uv0, _FurNoise);
-				
+
 				o.clipThreshold = _FurCLipMin + (_FurCLipMax - _FurCLipMin) * pow(_MULTIPASS_PARAMS.z, _FurPowShape);
 
 				return o;
@@ -359,7 +359,7 @@ Shader "Character/LitFur"
                 #if _SHADOW_RAMP
                     shadowRamp = SampleDirectShadowRamp(TEXTURE2D_ARGS(_ShadowRampTex, sampler_ShadowRampTex), 1.0 - shadowArea);
                 #endif
-					
+
                     // NdotV modify fresnel
 					NdotV += _NdotVAdd;
 
@@ -381,7 +381,7 @@ Shader "Character/LitFur"
 					float G = GeometrySmith(NdotLRemap, NdotV, pow(roughness + 1.0, 2.0) / 8.0);
 					float3 F = fresnelSchlick(HdotV, F0);
 
-                    
+
 					// GGX specArea remap
 					NDF = NDF * ilmSpecMask;
 
@@ -455,7 +455,7 @@ Shader "Character/LitFur"
         // // DepthNormals
 		// UsePass "Character/LitPBRToon/DepthNormals"
 
-        
+
 
     }
 

@@ -8,7 +8,7 @@ Shader "Hidden/Universal/BlitHDROverlay"
         #pragma multi_compile_local_fragment _ HDR_COLORSPACE_CONVERSION HDR_ENCODING HDR_COLORSPACE_CONVERSION_AND_ENCODING
 
         // Core.hlsl for XR dependencies
-        #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/HDROutput.hlsl"
         #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
@@ -16,7 +16,7 @@ Shader "Hidden/Universal/BlitHDROverlay"
         TEXTURE2D_X(_OverlayUITexture);
 
         float4 _HDROutputLuminanceParams;
-        
+
         #define MinNits    _HDROutputLuminanceParams.x
         #define MaxNits    _HDROutputLuminanceParams.y
         #define PaperWhite _HDROutputLuminanceParams.z
@@ -29,7 +29,7 @@ Shader "Hidden/Universal/BlitHDROverlay"
 
 #if defined(HDR_ENCODING)
             color.rgb = SceneUIComposition(uiSample, color.rgb, PaperWhite, MaxNits);
-            color.rgb = OETF(color.rgb);
+            color.rgb = OETF(color.rgb, MaxNits);
 #endif
             return color;
         }
@@ -67,7 +67,7 @@ Shader "Hidden/Universal/BlitHDROverlay"
                 #pragma fragment FragBilinearHDR
 
                 float4 FragBilinearHDR(Varyings input) : SV_Target
-                {                                                           
+                {
                     float4 color = FragBilinear(input);
                     float4 uiSample = SAMPLE_TEXTURE2D_X(_OverlayUITexture, sampler_PointClamp, input.texcoord);
                     return SceneComposition(color, uiSample);

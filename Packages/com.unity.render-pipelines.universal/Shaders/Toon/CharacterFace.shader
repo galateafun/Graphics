@@ -24,7 +24,7 @@ Shader "Character/LitFace"
             [HDR]_SelfLight("SelfLight", Color) = (1,1,1,1)
             _MainLightColorLerp("Unity Light or SelfLight", Range(0,1)) = 0
             _DirectOcclusion("DirectOcclusion",Range(0,1)) = 0.1
-            
+
 			[NoScaleOffset]
 			_FaceLightMap		("FaceLightMap", 2D)                		= "white" {}
 
@@ -51,7 +51,7 @@ Shader "Character/LitFace"
         [FoldoutBegin(_FoldoutShadowRampEnd, _SHADOW_RAMP)]_FoldoutShadowRamp("ShadowRamp", float) = 0
         [HideInInspector]_SHADOW_RAMP("_SHADOW_RAMP", float) = 0
             [Ramp]_ShadowRampTex("ShadowRampTex", 2D) = "white" { }
-            
+
         [FoldoutEnd]_FoldoutShadowRampEnd("_FoldoutEnd", float) = 0
 
 
@@ -90,7 +90,7 @@ Shader "Character/LitFace"
 			_FriColorMask("Color Mask", Float) = 15
 		[FoldoutEnd]_FoldoutFringeShadowEnd("_FoldoutFringeShadowEnd", float) = 0
 
-        [Enum(UnityEngine.Rendering.CullMode)] 
+        [Enum(UnityEngine.Rendering.CullMode)]
         _Cull("Cull Mode", Float) =2
     }
     SubShader
@@ -148,7 +148,7 @@ Shader "Character/LitFace"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
-            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
 
 			// -------------------------------------
             // Unity defined keywords
@@ -164,15 +164,15 @@ Shader "Character/LitFace"
             // GPU Instancing
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
-            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
 			// -------------------------------------
             // Includes
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Lighting.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityGBuffer.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DanbaidongToon.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityGBuffer.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DanbaidongToon.hlsl"
 
 
 
@@ -228,8 +228,8 @@ Shader "Character/LitFace"
             TEXTURE2D(_PBRMask);
 			SAMPLER(sampler_PBRMask);
 		    TEXTURE2D(_NormalMap);
-			SAMPLER(sampler_NormalMap);	
-			
+			SAMPLER(sampler_NormalMap);
+
 			TEXTURE2D(_ILMMapSpecType);
 			TEXTURE2D(_ILMMapAO);
 			TEXTURE2D(_ILMMapSpecMask);
@@ -245,7 +245,7 @@ Shader "Character/LitFace"
 			TEXTURE2D(_IndirSpecMatcap);
 			SAMPLER(sampler_IndirSpecMatcap);
 
-			struct a2v 
+			struct a2v
 			{
 				float4 vertex 	:POSITION;
 				float3 normal 	:NORMAL;
@@ -255,7 +255,7 @@ Shader "Character/LitFace"
 				float4 uv1 		:TEXCOORD1;
 				UNITY_VERTEX_INPUT_INSTANCE_ID
 			};
-			struct v2f 
+			struct v2f
 			{
 				float4 positionHCS		:SV_POSITION;
                 float3 positionWS   	:TEXCOORD0;
@@ -320,7 +320,7 @@ Shader "Character/LitFace"
 				half  ilmSpecMask = SAMPLE_TEXTURE2D(_ILMMapSpecMask, sampler_LinearClamp, UV).r;
 				half  ilmAO = SAMPLE_TEXTURE2D(_ILMMapAO, sampler_LinearClamp, UV).r;
 				ilmAO = lerp(1 - _SecShadowStrength, 1, ilmAO);
-				
+
 				// VectorPrepare
 				float3 lightDirWS = SafeNormalize(mainLight.direction);
 				float3 camDirWS = GetCameraPositionWS();
@@ -370,7 +370,7 @@ Shader "Character/LitFace"
                 #if _SHADOW_RAMP
                     shadowRamp = SampleDirectShadowRamp(TEXTURE2D_ARGS(_ShadowRampTex, sampler_ShadowRampTex), 1.0 - shadowArea);
                 #endif
-					
+
                     // NdotV modify fresnel
 					NdotV += _NdotVAdd;
 
@@ -391,7 +391,7 @@ Shader "Character/LitFace"
 					float NDF = DistributionGGX(NdotH, roughnessSquare);
 					float G = GeometrySmith(NdotLRemap, NdotV, pow(roughness + 1.0, 2.0) / 8.0);
 					float3 F = fresnelSchlick(HdotV, F0);
-                    
+
 					// GGX specArea remap
 					NDF = NDF * ilmSpecMask;
 
@@ -464,7 +464,7 @@ Shader "Character/LitFace"
             ENDHLSL
 
         }
-        
+
 		// FringeShadowReceiver
 		Pass
         {
@@ -515,7 +515,7 @@ Shader "Character/LitFace"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
-            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
 
 			// -------------------------------------
             // Unity defined keywords
@@ -531,15 +531,15 @@ Shader "Character/LitFace"
             // GPU Instancing
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
-            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
 			// -------------------------------------
             // Includes
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Lighting.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityGBuffer.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DanbaidongToon.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityGBuffer.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DanbaidongToon.hlsl"
 
 
             CBUFFER_START(UnityPerMaterial)
@@ -594,8 +594,8 @@ Shader "Character/LitFace"
             TEXTURE2D(_PBRMask);
 			SAMPLER(sampler_PBRMask);
 		    TEXTURE2D(_NormalMap);
-			SAMPLER(sampler_NormalMap);	
-			
+			SAMPLER(sampler_NormalMap);
+
 			TEXTURE2D(_ILMMapSpecType);
 			TEXTURE2D(_ILMMapAO);
 			TEXTURE2D(_ILMMapSpecMask);
@@ -685,7 +685,7 @@ Shader "Character/LitFace"
                 #if _SHADOW_RAMP
                     shadowRamp = SampleDirectShadowRamp(TEXTURE2D_ARGS(_ShadowRampTex, sampler_ShadowRampTex), 1.0 - shadowArea);
                 #endif
-					
+
                     // NdotV modify fresnel
 					NdotV += _NdotVAdd;
 
@@ -706,7 +706,7 @@ Shader "Character/LitFace"
 					float NDF = DistributionGGX(NdotH, roughnessSquare);
 					float G = GeometrySmith(NdotLRemap, NdotV, pow(roughness + 1.0, 2.0) / 8.0);
 					float3 F = fresnelSchlick(HdotV, F0);
-                    
+
 					// GGX specArea remap
 					NDF = NDF * ilmSpecMask;
 

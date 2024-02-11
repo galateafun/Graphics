@@ -6,7 +6,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
 
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Filtering.hlsl"
-        #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
+        #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
         #include "Packages/com.unity.render-pipelines.core/Runtime/Utilities/Blit.hlsl"
         #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
 
@@ -64,8 +64,11 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
             float2 uv = UnityStereoTransformScreenSpaceTex(input.texcoord);
 
-#if defined(_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
-            uv = RemapFoveatedRenderingResolve(uv);
+#if defined(SUPPORTS_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
+            UNITY_BRANCH if (_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
+            {
+                uv = RemapFoveatedRenderingLinearToNonUniform(uv);
+            }
 #endif
 
         #if _BLOOM_HQ
@@ -192,9 +195,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 #pragma vertex Vert
                 #pragma fragment FragPrefilter
                 #pragma multi_compile_local _ _BLOOM_HQ
-                #pragma multi_compile_fragment _ _FOVEATED_RENDERING_NON_UNIFORM_RASTER
-                // Foveated rendering currently not supported in dxc on metal
-                #pragma never_use_dxc metal
+                #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             ENDHLSL
         }
 
@@ -205,6 +206,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
             HLSLPROGRAM
                 #pragma vertex Vert
                 #pragma fragment FragBlurH
+                #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             ENDHLSL
         }
 
@@ -215,6 +217,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
             HLSLPROGRAM
                 #pragma vertex Vert
                 #pragma fragment FragBlurV
+                #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             ENDHLSL
         }
 
@@ -226,15 +229,16 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 #pragma vertex Vert
                 #pragma fragment FragUpsample
                 #pragma multi_compile_local _ _BLOOM_HQ
+                #include_with_pragmas "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
             ENDHLSL
         }
 
 
         // 4: Bloom ver2 preFilter
-    
+
         Pass
         {
-            HLSLPROGRAM     
+            HLSLPROGRAM
             #pragma vertex   VertPreFilter_v2
             #pragma fragment FragPreFilter_v2
 
@@ -254,14 +258,14 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
             #endif
-            struct v2f_preFilter 
+            struct v2f_preFilter
             {
                 float4 positionHCS : SV_POSITION;
                 float4 uv0: TEXCOORD0;
                 float4 uv1: TEXCOORD1;
             };
 
-            v2f_preFilter VertPreFilter_v2(a2v_preFilter v) 
+            v2f_preFilter VertPreFilter_v2(a2v_preFilter v)
             {
                 v2f_preFilter o;
                 UNITY_SETUP_INSTANCE_ID(v);
@@ -284,7 +288,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
 
                 return o;
             }
-            
+
             half4 FragPreFilter_v2(v2f_preFilter i) : SV_Target
             {
                 half3 mainCol = 0;
@@ -292,7 +296,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 mainCol += SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv0.xy);
                 mainCol += SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv0.zw);
                 mainCol += SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv1.xy);
-                mainCol += SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv1.zw);  
+                mainCol += SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv1.zw);
                 mainCol /= 4;
 
                 mainCol *= 1 / (1 + Bloomv2LumRnageScale * Luminance(mainCol.rgb));
@@ -306,13 +310,13 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
 
             ENDHLSL
         }
-        
-        
+
+
         // 5: Bloom ver2 downsampler
-        
+
         Pass
         {
-            HLSLPROGRAM     
+            HLSLPROGRAM
             #pragma vertex   VertDownSample_v2
             #pragma fragment FragDownSample_v2
 
@@ -330,14 +334,14 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
             #endif
-            struct v2f_downsampler 
+            struct v2f_downsampler
             {
                 float4 positionHCS : SV_POSITION;
                 float4 uv0: TEXCOORD0;
                 float4 uv1: TEXCOORD1;
             };
 
-            v2f_downsampler VertDownSample_v2(a2v_downsampler v) 
+            v2f_downsampler VertDownSample_v2(a2v_downsampler v)
             {
                 v2f_downsampler o;
                 UNITY_SETUP_INSTANCE_ID(v);
@@ -366,8 +370,8 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 s =  DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv0.xy));
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv0.zw));
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv1.xy));
-                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv1.zw)); 
-                
+                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, i.uv1.zw));
+
                 return EncodeHDR(s * 0.25);
             }
 
@@ -381,13 +385,13 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
         *  [2]offset: 1.444753000, weight: 0.259729700
         *  [3]offset: 0.000000000, weight: 0.155285200
         */
-        
+
         Pass
         {
-            HLSLPROGRAM     
+            HLSLPROGRAM
             #pragma vertex   Vert
             #pragma fragment FragBlur_pre
-            
+
 
             half4 FragBlur_pre(Varyings i) : SV_Target
             {
@@ -406,7 +410,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 offsetUV0.xy = clamp(offsetUV0.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 offsetUV1.xy = clamp(offsetUV1.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV0)) * 0.127357100;
-                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.127357100;  
+                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.127357100;
 
                 offsetUV0 = i.texcoord.xy + scaler.xy * 1.444753000;
                 offsetUV1 = i.texcoord.xy - scaler.xy * 1.444753000;
@@ -425,7 +429,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
             ENDHLSL
         }
 
-        
+
         // 7: mip 1st blur, sigma = 3.2, 加速高斯模糊, 半径8, 9次采样
         /*
         *    [0]offset: 7.324664000, weight: 0.017001690
@@ -434,13 +438,13 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
         *    [3]offset: 1.463444000, weight: 0.222984700
         *    [4]offset: 0.000000000, weight: 0.125630700
         */
-        
+
         Pass
         {
-            HLSLPROGRAM     
+            HLSLPROGRAM
             #pragma vertex   Vert
             #pragma fragment FragBlur_first
-            
+
 
             half4 FragBlur_first(Varyings i) : SV_Target
             {
@@ -459,7 +463,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 offsetUV0.xy = clamp(offsetUV0.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 offsetUV1.xy = clamp(offsetUV1.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV0)) * 0.058725350;
-                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.058725350;  
+                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.058725350;
 
                 offsetUV0 = i.texcoord.xy + scaler.xy * 3.415373000;
                 offsetUV1 = i.texcoord.xy - scaler.xy * 3.415373000;
@@ -497,13 +501,13 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
         *    [7]offset: 1.486653000,  weight: 0.144306200
         *    [8]offset: 0.000000000,  weight: 0.075409520
         */
-        
+
         Pass
         {
-            HLSLPROGRAM     
+            HLSLPROGRAM
             #pragma vertex   Vert
             #pragma fragment FragBlur_second
-            
+
 
             half4 FragBlur_second(Varyings i) : SV_Target
             {
@@ -522,7 +526,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 offsetUV0.xy = clamp(offsetUV0.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 offsetUV1.xy = clamp(offsetUV1.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV0)) * 0.006026655;
-                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.006026655;  
+                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.006026655;
 
                 offsetUV0 = i.texcoord.xy + scaler.xy * 11.399060000;
                 offsetUV1 = i.texcoord.xy - scaler.xy * 11.399060000;
@@ -590,13 +594,13 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
         *    [9]offset: 1.491521000,  weight: 0.116892900
         *    [10]offset: 0.000000000, weight: 0.060113440
         */
-        
+
         Pass
         {
-            HLSLPROGRAM     
+            HLSLPROGRAM
             #pragma vertex   Vert
             #pragma fragment FragBlur_third
-            
+
 
             half4 FragBlur_third(Varyings i) : SV_Target
             {
@@ -615,7 +619,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 offsetUV0.xy = clamp(offsetUV0.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 offsetUV1.xy = clamp(offsetUV1.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV0)) * 0.003832045;
-                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.003832045;  
+                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.003832045;
 
                 offsetUV0 = i.texcoord.xy + scaler.xy * 15.413260000;
                 offsetUV1 = i.texcoord.xy - scaler.xy * 15.413260000;
@@ -629,7 +633,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 offsetUV0.xy = clamp(offsetUV0.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 offsetUV1.xy = clamp(offsetUV1.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV0)) * 0.015449170;
-                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.015449170;  
+                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.015449170;
 
                 offsetUV0 = i.texcoord.xy + scaler.xy * 11.435350000;
                 offsetUV1 = i.texcoord.xy - scaler.xy * 11.435350000;
@@ -643,7 +647,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 offsetUV0.xy = clamp(offsetUV0.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 offsetUV1.xy = clamp(offsetUV1.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV0)) * 0.043462710;
-                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.043462710;  
+                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.043462710;
 
                 offsetUV0 = i.texcoord.xy + scaler.xy * 7.457702000;
                 offsetUV1 = i.texcoord.xy - scaler.xy * 7.457702000;
@@ -657,7 +661,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 offsetUV0.xy = clamp(offsetUV0.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 offsetUV1.xy = clamp(offsetUV1.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV0)) * 0.085324850;
-                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.085324850;  
+                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.085324850;
 
                 offsetUV0 = i.texcoord.xy + scaler.xy * 3.480224000;
                 offsetUV1 = i.texcoord.xy - scaler.xy * 3.480224000;
@@ -671,7 +675,7 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 offsetUV0.xy = clamp(offsetUV0.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 offsetUV1.xy = clamp(offsetUV1.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
                 s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV0)) * 0.116892900;
-                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.116892900;  
+                s += DecodeHDR (SAMPLE_TEXTURE2D_X(_BlitTexture, sampler_LinearClamp, offsetUV1)) * 0.116892900;
 
                 offsetUV0 = i.texcoord.xy + scaler.xy * 0;
                 offsetUV0.xy = clamp(offsetUV0.xy, _BlitTexture_TexelSize.xy, 1 - _BlitTexture_TexelSize.xy);
@@ -682,19 +686,19 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
 
             ENDHLSL
         }
-        
+
         // 10: ver2 upsampler
-        
+
         Pass
         {
-            HLSLPROGRAM     
+            HLSLPROGRAM
             #pragma vertex   Vert
             #pragma fragment FragUpSample_v2
-            
+
             float4 _Bloom_Danbaidong_BlurCompositeWeight;
 
-            TEXTURE2D_X(_BloomMipDown0); 
-            TEXTURE2D_X(_BloomMipDown1); 
+            TEXTURE2D_X(_BloomMipDown0);
+            TEXTURE2D_X(_BloomMipDown1);
             TEXTURE2D_X(_BloomMipDown2);
 
             half4 FragUpSample_v2(Varyings i) : SV_Target
@@ -705,8 +709,8 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
                 half3 mip0 = DecodeHDR(SAMPLE_TEXTURE2D_X(_BloomMipDown0, sampler_LinearClamp, i.texcoord)) * combineScale.y;
                 half3 mip1 = DecodeHDR(SAMPLE_TEXTURE2D_X(_BloomMipDown1, sampler_LinearClamp, i.texcoord)) * combineScale.z;
                 half3 mip2 = DecodeHDR(SAMPLE_TEXTURE2D_X(_BloomMipDown2, sampler_LinearClamp, i.texcoord)) * combineScale.w;
-                
-                
+
+
                 return EncodeHDR( main + mip0 + mip1  + mip2);
             }
 

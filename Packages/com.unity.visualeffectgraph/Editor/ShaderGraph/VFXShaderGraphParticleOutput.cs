@@ -263,14 +263,6 @@ namespace UnityEditor.VFX
             var shaderGraph = GetOrRefreshShaderGraphObject();
             if (shaderGraph != null && shaderGraph.generatesWithShaderGraph)
             {
-                if (materialSettings.NeedsSync())
-                {
-                    var sgAssetPath = AssetDatabase.GetAssetPath(shaderGraph.GetInstanceID());
-                    var vfxAssetPath = AssetDatabase.GetAssetPath(this);
-
-                    Debug.LogErrorFormat("Unexpected missing material settings on VFX '{0}' using ShaderGraph '{1}'.\nThis invalid state can lead to an incorrect sort mode.", vfxAssetPath, sgAssetPath);
-                }
-
                 materialSettings.ApplyToMaterial(material);
                 VFXLibrary.currentSRPBinder.SetupMaterial(material, hasMotionVector, hasShadowCasting, shaderGraph);
 
@@ -456,7 +448,7 @@ namespace UnityEditor.VFX
             yield return "cullMode";
             yield return "zWriteMode";
             yield return "zTestMode";
-            yield return "excludeFromTAA";
+            yield return "excludeFromTUAndAA";
             yield return "preserveSpecularLighting";
             yield return "doubleSided";
             yield return "onlyAmbientLighting";
@@ -563,7 +555,15 @@ namespace UnityEditor.VFX
 
                 // Ensure that the output context name is in sync with the shader graph shader enum name.
                 if (currentShaderGraph != null && currentShaderGraph.generatesWithShaderGraph)
+                {
+
+                    var assetPath = AssetDatabase.GetAssetPath(currentShaderGraph.GetInstanceID());
+                    var materialReference = AssetDatabase.LoadAssetAtPath<Material>(assetPath);
+                    if (materialReference != null)
+                        materialSettings.AddPropertiesFromMaterial(materialReference);
+
                     Invalidate(InvalidationCause.kUIChangedTransient);
+                }
                 else if (isShaderGraphMissing)
                 {
                     var vfxName = GetGraph().visualEffectResource.name;
@@ -574,8 +574,15 @@ namespace UnityEditor.VFX
 
         static string GetMissingShaderGraphErrorMessage(ShaderGraphVfxAsset shader)
         {
-            var missingShaderPath = AssetDatabase.GetAssetPath(shader.GetInstanceID());
-            return $" cannot be compiled because a Shader Graph asset located here '{missingShaderPath}' is missing.";
+            var instanceID = shader.GetInstanceID();
+            var missingShaderPath = AssetDatabase.GetAssetPath(instanceID);
+            if (!string.IsNullOrEmpty(missingShaderPath))
+            {
+                return $" cannot be compiled because a Shader Graph asset located here '{missingShaderPath}' is missing.";
+            }
+
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(shader, out var guid, out long localID);
+            return $" cannot be compiled because a Shader Graph with GUID '{guid}' is missing.\nYou might find the missing file by searching on your disk this guid in .meta files.";
         }
 
         internal override void GenerateErrors(VFXInvalidateErrorReporter manager)

@@ -31,7 +31,7 @@ Shader "Unlit/CharacterEyeBlend"
             #pragma fragment frag
 
 
-            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             struct appdata
             {

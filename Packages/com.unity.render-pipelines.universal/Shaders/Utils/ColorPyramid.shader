@@ -9,7 +9,7 @@ Shader "Hidden/ColorPyramid"
         Tags{ "RenderPipeline" = "HDRenderPipeline" }
         HLSLINCLUDE
             #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-            #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
+            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
             TEXTURE2D_X_HALF(_Source);
             SamplerState sampler_LinearClamp;
@@ -73,7 +73,7 @@ Shader "Hidden/ColorPyramid"
             ENDHLSL
         }
 
-        
+
         // 1: no tex array
         Pass
         {

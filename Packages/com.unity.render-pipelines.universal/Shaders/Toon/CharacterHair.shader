@@ -25,7 +25,7 @@ Shader "Character/LitHair"
             [HDR]_SelfLight					("SelfLight", Color) 					= (1,1,1,1)
             _MainLightColorLerp				("Unity Light or SelfLight", Range(0,1))= 0
             _DirectOcclusion				("DirectOcclusion",Range(0,1)) 			= 0.1
-            
+
             [Title(Shadow)]
             _ShadowColor        			("ShadowColor", Color)        			= (0,0,0,1)
             _ShadowOffset       			("ShadowOffset",Range(-1,1))  			= 0.0
@@ -87,7 +87,7 @@ Shader "Character/LitHair"
 
 		// Other Settings
 		[Space(10)]
-        [Enum(UnityEngine.Rendering.CullMode)] 
+        [Enum(UnityEngine.Rendering.CullMode)]
         _Cull								("Cull Mode", Float) 					= 2
 		_AlphaClip							("AlphaClip", Range(0, 1)) 				= 1
 
@@ -146,7 +146,7 @@ Shader "Character/LitHair"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #pragma multi_compile_fragment _ _DBUFFER_MRT1 _DBUFFER_MRT2 _DBUFFER_MRT3
             #pragma multi_compile_fragment _ _RENDER_PASS_ENABLED
-            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/RenderingLayers.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/RenderingLayers.hlsl"
 
 			// -------------------------------------
             // Unity defined keywords
@@ -162,15 +162,15 @@ Shader "Character/LitHair"
             // GPU Instancing
             #pragma multi_compile_instancing
             #pragma instancing_options renderinglayer
-            #include_with_pragmas "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DOTS.hlsl"
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DOTS.hlsl"
 
 			// -------------------------------------
             // Includes
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Lighting.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 			#include "Packages/com.unity.render-pipelines.core/ShaderLibrary/UnityInstancing.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityGBuffer.hlsl"
-			#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DanbaidongToon.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityGBuffer.hlsl"
+			#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DanbaidongToon.hlsl"
 			// #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/BSDF.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
@@ -224,7 +224,7 @@ Shader "Character/LitHair"
             TEXTURE2D(_PBRMask);
 			SAMPLER(sampler_PBRMask);
 		    TEXTURE2D(_NormalMap);
-			SAMPLER(sampler_NormalMap);	
+			SAMPLER(sampler_NormalMap);
 
 			TEXTURE2D(_ILMMapSpecType);
 			TEXTURE2D(_ILMMapAO);
@@ -245,7 +245,7 @@ Shader "Character/LitHair"
             {
                 UNITY_SETUP_INSTANCE_ID(i);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-				
+
                 float2 UV = i.uv.xy;
 				float2 UV1 = i.uv.zw;
 				float3 positionWS = i.positionWS;
@@ -294,7 +294,7 @@ Shader "Character/LitHair"
                 #if _SHADOW_RAMP
                     shadowRamp = SampleDirectShadowRamp(TEXTURE2D_ARGS(_ShadowRampTex, sampler_ShadowRampTex), 1.0 - shadowArea);
                 #endif
-					
+
                     // NdotV modify fresnel
 					NdotV += _NdotVAdd;
 
@@ -314,7 +314,7 @@ Shader "Character/LitHair"
 					float NDF = DistributionGGX(NdotH, roughnessSquare);
 					float G = GeometrySmith(NdotLRemap, NdotV, pow(roughness + 1.0, 2.0) / 8.0);
 					float3 F = fresnelSchlick(HdotV, F0);
-                    
+
 					// GGX specArea remap
 					NDF = NDF * ilmSpecMask;
 
@@ -382,7 +382,7 @@ Shader "Character/LitHair"
             ENDHLSL
 
         }
-        
+
         // Outline
 		UsePass "Character/Outline/GBufferOutline"
 

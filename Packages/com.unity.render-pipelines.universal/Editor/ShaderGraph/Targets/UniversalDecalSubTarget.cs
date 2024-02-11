@@ -349,7 +349,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                     useInPreview = false,
 
                     // Template
-                    passTemplatePath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Decal/DecalPass.template",
+                    passTemplatePath = "Packages/com.unity.render-pipelines.universal/Editor/Decal/DecalPass.template",
                     sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
 
                     // Collections
@@ -372,7 +372,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 useInPreview = false,
 
                 // Template
-                passTemplatePath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Decal/DecalPass.template",
+                passTemplatePath = "Packages/com.unity.render-pipelines.universal/Editor/Decal/DecalPass.template",
                 sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
 
                 // Port mask
@@ -397,7 +397,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 useInPreview = false,
 
                 // Template
-                passTemplatePath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Decal/DecalPass.template",
+                passTemplatePath = "Packages/com.unity.render-pipelines.universal/Editor/Decal/DecalPass.template",
                 sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
 
                 // Port mask
@@ -428,7 +428,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                     useInPreview = false,
 
                     // Template
-                    passTemplatePath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Decal/DecalPass.template",
+                    passTemplatePath = "Packages/com.unity.render-pipelines.universal/Editor/Decal/DecalPass.template",
                     sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
 
                     // Port mask
@@ -456,7 +456,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 useInPreview = false,
 
                 // Template
-                passTemplatePath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Decal/DecalPass.template",
+                passTemplatePath = "Packages/com.unity.render-pipelines.universal/Editor/Decal/DecalPass.template",
                 sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
 
                 // Port mask
@@ -483,7 +483,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 useInPreview = false,
 
                 // Template
-                passTemplatePath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Decal/DecalPass.template",
+                passTemplatePath = "Packages/com.unity.render-pipelines.universal/Editor/Decal/DecalPass.template",
                 sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
 
                 // Port mask
@@ -511,7 +511,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 useInPreview = false,
 
                 // Template
-                passTemplatePath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Decal/DecalPass.template",
+                passTemplatePath = "Packages/com.unity.render-pipelines.universal/Editor/Decal/DecalPass.template",
                 sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
 
                 // Port mask
@@ -543,7 +543,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                     useInPreview = true,
 
                     // Template
-                    passTemplatePath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Decal/DecalPass.template",
+                    passTemplatePath = "Packages/com.unity.render-pipelines.universal/Editor/Decal/DecalPass.template",
                     sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
 
                     // Port mask
@@ -571,7 +571,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 useInPreview = false,
 
                 // Template
-                passTemplatePath = "Packages/com.unity.render-pipelines.danbaidong/Editor/Decal/DecalPass.template",
+                passTemplatePath = "Packages/com.unity.render-pipelines.universal/Editor/Decal/DecalPass.template",
                 sharedTemplateDirectories = GenerationUtils.GetDefaultSharedTemplateDirectories(),
 
                 // Port mask
@@ -973,7 +973,6 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             public static KeywordCollection DBufferProjector = new KeywordCollection
             {
                 { CoreKeywordDescriptors.DBuffer },
-                { CoreKeywordDescriptors.FoveatedRendering },
                 { Descriptors.DecalLayers },
             };
 
@@ -991,6 +990,9 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 { CoreKeywordDescriptors.AdditionalLights },
                 { CoreKeywordDescriptors.AdditionalLightShadows },
                 { CoreKeywordDescriptors.ShadowsSoft },
+                { CoreKeywordDescriptors.ShadowsSoftLow },
+                { CoreKeywordDescriptors.ShadowsSoftMedium },
+                { CoreKeywordDescriptors.ShadowsSoftHigh },
                 { CoreKeywordDescriptors.LightmapShadowMixing },
                 { CoreKeywordDescriptors.ShadowsShadowmask },
                 { CoreKeywordDescriptors.ForwardPlus },
@@ -1011,8 +1013,10 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 { CoreKeywordDescriptors.AdditionalLights },
                 { CoreKeywordDescriptors.AdditionalLightShadows },
                 { CoreKeywordDescriptors.ShadowsSoft },
+                { CoreKeywordDescriptors.ShadowsSoftLow },
+                { CoreKeywordDescriptors.ShadowsSoftMedium },
+                { CoreKeywordDescriptors.ShadowsSoftHigh },
                 { CoreKeywordDescriptors.ForwardPlus },
-                { CoreKeywordDescriptors.FoveatedRendering },
                 { Descriptors.DecalsNormalBlend },
                 { Descriptors.DecalLayers },
             };
@@ -1024,6 +1028,9 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
                 { CoreKeywordDescriptors.DirectionalLightmapCombined },
                 { CoreKeywordDescriptors.MainLightShadows },
                 { CoreKeywordDescriptors.ShadowsSoft },
+                { CoreKeywordDescriptors.ShadowsSoftLow },
+                { CoreKeywordDescriptors.ShadowsSoftMedium },
+                { CoreKeywordDescriptors.ShadowsSoftHigh },
                 { CoreKeywordDescriptors.LightmapShadowMixing },
                 { CoreKeywordDescriptors.MixedLightingSubtractive },
                 { Descriptors.DecalsNormalBlend },
@@ -1037,6 +1044,9 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
             {
                 { CoreKeywordDescriptors.MainLightShadows },
                 { CoreKeywordDescriptors.ShadowsSoft },
+                { CoreKeywordDescriptors.ShadowsSoftLow },
+                { CoreKeywordDescriptors.ShadowsSoftMedium },
+                { CoreKeywordDescriptors.ShadowsSoftHigh },
                 { Descriptors.DecalsNormalBlend },
                 { Descriptors.DecalLayers },
                 { CoreKeywordDescriptors.GBufferNormalsOct },
@@ -1048,14 +1058,14 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         #region Includes
         static class DecalIncludes
         {
-            const string kDecalInput = "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DecalInput.hlsl";
-            const string kShaderVariablesDecal = "Packages/com.unity.render-pipelines.danbaidong/Editor/ShaderGraph/Includes/ShaderVariablesDecal.hlsl";
-            const string kPassDecal = "Packages/com.unity.render-pipelines.danbaidong/Editor/ShaderGraph/Includes/ShaderPassDecal.hlsl";
-            const string kShaderPass = "Packages/com.unity.render-pipelines.danbaidong/Editor/ShaderGraph/Includes/ShaderPass.hlsl";
-            const string kVaryings = "Packages/com.unity.render-pipelines.danbaidong/Editor/ShaderGraph/Includes/Varyings.hlsl";
-            const string kDBuffer = "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DBuffer.hlsl";
-            const string kGBuffer = "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityGBuffer.hlsl";
-            const string kLODCrossFade = "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/LODCrossFade.hlsl";
+            const string kDecalInput = "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DecalInput.hlsl";
+            const string kShaderVariablesDecal = "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderVariablesDecal.hlsl";
+            const string kPassDecal = "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPassDecal.hlsl";
+            const string kShaderPass = "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/ShaderPass.hlsl";
+            const string kVaryings = "Packages/com.unity.render-pipelines.universal/Editor/ShaderGraph/Includes/Varyings.hlsl";
+            const string kDBuffer = "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DBuffer.hlsl";
+            const string kGBuffer = "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityGBuffer.hlsl";
+            const string kLODCrossFade = "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl";
 
             public static IncludeCollection DecalPregraph = new IncludeCollection
             {

@@ -9,6 +9,25 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 Version Updated
 The version number for this package has increased due to a version update of a related graphics package.
 
+## [14.0.8] - 2023-09-27
+
+This version is compatible with Unity 2022.3.11f1.
+
+### Added
+ - Added the new Node Reference sample pack which adds 146 reference assets to help users learn more about available nodes
+
+### Changed
+- [SGB-613][SGB-594] Addressed an issue where certain operations were taking too long as a result of graph concretization.
+
+### Fixed
+- Fixed Texture Size node causing compilation error in the Fullscreen ShaderGraph target.
+- [SGB-561] Addressed issue where save/save as hotkeys weren't being caught by shadergraph editor window.
+- [SGB-581][SGB-531] Addressed minor usability issues with Custom Function Nodes.
+- [SGB-605] Addressed issue where adding dropdown property type to newly created subgraphs did not propagate to other open shadergraph editor windows.
+- [SGB-597] Removed invalid character from imported material sub asset.
+- [SGB-592][SGB-596] Addressed issue where docs links from editor were incorrect.
+- Fixed a regression where adding nodes in large graphs would cause a major slowdown.
+
 ## [14.0.7] - 2023-05-23
 
 This version is compatible with Unity 2022.2.22f1.

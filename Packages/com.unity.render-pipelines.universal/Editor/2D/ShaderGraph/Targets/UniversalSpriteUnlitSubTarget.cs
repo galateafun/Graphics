@@ -25,6 +25,13 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         {
             base.Setup(ref context);
             context.AddAssetDependency(kSourceCodeGuid, AssetCollection.Flags.SourceDependency);
+#if HAS_VFX_GRAPH
+            var universalRPType = typeof(UnityEngine.Rendering.Universal.UniversalRenderPipelineAsset);
+            if (TargetsVFX() && !context.HasCustomEditorForRenderPipeline(universalRPType))
+            {
+                context.AddCustomEditorForRenderPipeline(typeof(VFXGenericShaderGraphMaterialGUI).FullName, universalRPType);
+            }
+#endif
             context.AddSubShader(PostProcessSubShader(SubShaders.SpriteUnlit(target)));
         }
 
@@ -207,7 +214,7 @@ namespace UnityEditor.Rendering.Universal.ShaderGraph
         #region Includes
         static class SpriteUnlitIncludes
         {
-            const string kSpriteUnlitPass = "Packages/com.unity.render-pipelines.danbaidong/Editor/2D/ShaderGraph/Includes/SpriteUnlitPass.hlsl";
+            const string kSpriteUnlitPass = "Packages/com.unity.render-pipelines.universal/Editor/2D/ShaderGraph/Includes/SpriteUnlitPass.hlsl";
 
             public static IncludeCollection Unlit = new IncludeCollection
             {

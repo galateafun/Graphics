@@ -2,9 +2,9 @@
 #define UNIVERSAL_TEMPORAL_AA
 
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Common.hlsl"
-    #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
-    #include "Packages/com.unity.render-pipelines.danbaidong/Shaders/PostProcessing/Common.hlsl"
-    #include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/DeclareDepthTexture.hlsl"
+    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+    #include "Packages/com.unity.render-pipelines.universal/Shaders/PostProcessing/Common.hlsl"
+    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
 
 #ifndef TAA_YCOCG
 #define TAA_YCOCG 1
@@ -228,11 +228,14 @@
 
     // From Playdead's TAA
     // (half version of HDRP impl)
+    //
+    // Small color-volume min size seems to produce flicker/noise in YCoCg space, that can't be seen in RGB,
+    // when using low precision (RGB111110f) color textures.
     half3 ClipToAABBCenter(half3 history, half3 minimum, half3 maximum)
     {
         // note: only clips towards aabb center (but fast!)
         half3 center  = 0.5 * (maximum + minimum);
-        half3 extents = 0.5 * (maximum - minimum);
+        half3 extents = max(0.5 * (maximum - minimum), HALF_MIN);   // Epsilon to avoid precision issues with empty volume.
 
         // This is actually `distance`, however the keyword is reserved
         half3 offset = history - center;

@@ -13,10 +13,15 @@ namespace UnityEditor.VFX.URP
 {
     class VFXURPBinder : VFXSRPBinder
     {
-        public override string templatePath { get { return "Packages/com.unity.render-pipelines.danbaidong/Editor/VFXGraph/Shaders"; } }
-        public override string runtimePath { get { return "Packages/com.unity.render-pipelines.danbaidong/Runtime/VFXGraph/Shaders"; } }
+        public override string templatePath { get { return "Packages/com.unity.render-pipelines.universal/Editor/VFXGraph/Shaders"; } }
+        public override string runtimePath { get { return "Packages/com.unity.render-pipelines.universal/Runtime/VFXGraph/Shaders"; } }
         public override string SRPAssetTypeStr { get { return "UniversalRenderPipelineAsset"; } }
         public override Type SRPOutputDataType { get { return null; } } // null by now but use VFXURPSubOutput when there is a need to store URP specific data
+
+        public override bool IsShaderVFXCompatible(Shader shader)
+        {
+            return shader.TryGetMetadataOfType<UniversalMetadata>(out var metadata) && metadata.isVFXCompatible;
+        }
 
         public override void SetupMaterial(Material material, bool hasMotionVector = false, bool hasShadowCasting = false, ShaderGraphVfxAsset shaderGraph = null)
         {
@@ -109,11 +114,11 @@ namespace UnityEditor.VFX.URP
             {
                 switch (metaData.shaderID)
                 {
-                    case ShaderUtils.ShaderID.SG_Unlit:
-                    case ShaderUtils.ShaderID.SG_SpriteUnlit: return "Unlit";
-                    case ShaderUtils.ShaderID.SG_Lit:
-                    case ShaderUtils.ShaderID.SG_SpriteLit:
-                    case ShaderUtils.ShaderID.SG_SpriteCustomLit: return "Lit";
+                    case ShaderUtils.ShaderID.SG_Unlit: return "Unlit";
+                    case ShaderUtils.ShaderID.SG_SpriteUnlit: return "Sprite Unlit";
+                    case ShaderUtils.ShaderID.SG_Lit: return "Lit";
+                    case ShaderUtils.ShaderID.SG_SpriteLit: return "Sprite Lit";
+                    case ShaderUtils.ShaderID.SG_SpriteCustomLit: return "Sprite Custom Lit";
                 }
             }
             return string.Empty;
@@ -173,7 +178,7 @@ namespace UnityEditor.VFX.URP
         static StructDescriptor AppendVFXInterpolator(StructDescriptor interpolator, VFXContext context, VFXContextCompiledData contextData)
         {
             var fields = interpolator.fields.ToList();
-			
+
 			fields.AddRange(VFXSubTarget.GetVFXInterpolators(UniversalStructs.Varyings.name, context, contextData));
 
             fields.Add(StructFields.Varyings.worldToElement0);
@@ -198,7 +203,7 @@ namespace UnityEditor.VFX.URP
                 alreadyAddedField.Add(field.name);
                 yield return field;
             }
-			
+
 			// VFX Material Properties
 			if (contextData.SGInputs != null)
             {
@@ -211,10 +216,10 @@ namespace UnityEditor.VFX.URP
 
 					if (alreadyAddedField.Contains(name))
 						throw new Exception($"Name conflict detected in SurfaceDescriptionInputs: {name}");
-					
+
                     yield return new FieldDescriptor(StructFields.SurfaceDescriptionInputs.name, name, "", shaderValueType);
                 }
-            }			
+            }
         }
 
         public override ShaderGraphBinder GetShaderGraphDescriptor(VFXContext context, VFXContextCompiledData data)

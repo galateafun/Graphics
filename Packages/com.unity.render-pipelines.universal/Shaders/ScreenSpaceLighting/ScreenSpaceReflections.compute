@@ -33,9 +33,9 @@
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Packing.hlsl"
 #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/Color.hlsl"
 
-#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/Core.hlsl"
-#include "Packages/com.unity.render-pipelines.danbaidong/ShaderLibrary/UnityGBuffer.hlsl"
-#include "Packages/com.unity.render-pipelines.danbaidong/Shaders/ScreenSpaceLighting/ScreenSpaceLighting.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/UnityGBuffer.hlsl"
+#include "Packages/com.unity.render-pipelines.universal/Shaders/ScreenSpaceLighting/ScreenSpaceLighting.hlsl"
 
 //--------------------------------------------------------------------------------------------------
 // Inputs & outputs
@@ -111,7 +111,7 @@ void GetNormalAndPerceptualRoughness(uint2 positionSS, out float3 normalWS, out 
 {
     // Load normal and perceptualRoughness.
     half4 normalGBuffer = LOAD_TEXTURE2D_X(_GBuffer2, positionSS);
-    
+
     normalWS = normalize(UnpackNormal(normalGBuffer.xyz)); // normalize() is required because terrain shaders use additive blending for normals (not unit-length anymore)
     perceptualRoughness = PerceptualSmoothnessToPerceptualRoughness(normalGBuffer.a);
 }
@@ -151,7 +151,7 @@ void ScreenSpaceReflectionsTracing(uint3 dispatchThreadId : SV_DispatchThreadID)
     float3 N;
     float perceptualRoughness;
     GetNormalAndPerceptualRoughness(positionSS, N, perceptualRoughness);
-    
+
 
     float2 blueNoiseRandom = 0;
     blueNoiseRandom.xy = _STBNTexture[float2(positionSS.x % 128, positionSS.y % 128)].xy;
@@ -177,7 +177,7 @@ void ScreenSpaceReflectionsTracing(uint3 dispatchThreadId : SV_DispatchThreadID)
 #endif /* SSR_PBR */
 
     float3 camPosWS = GetCurrentViewPosition();
-    
+
     // Apply normal bias with the magnitude dependent on the distance from the camera.
     // Unfortunately, we only have access to the shading normal, which is less than ideal...
     positionWS = camPosWS + (positionWS - camPosWS) * (1 - 0.001 * rcp(max(dot(N, V), FLT_EPS)));
@@ -203,7 +203,7 @@ void ScreenSpaceReflectionsTracing(uint3 dispatchThreadId : SV_DispatchThreadID)
                              rcpRayDir.y >= 0 ? 1 : -1,
                              rcpRayDir.z >= 0 ? 1 : -1);
     bool   rayTowardsEye  =  rcpRayDir.z >= 0;
-    
+
     // Note that we don't need to store or read the perceptualRoughness value
     // if we mark stencil during the G-Buffer pass with pixels which should receive SSR,
     // and sample the color pyramid during the lighting pass.
@@ -347,7 +347,7 @@ void ScreenSpaceReflectionsTracing(uint3 dispatchThreadId : SV_DispatchThreadID)
         float2 hitPositionNDC = floor(rayPos.xy) * _ScreenSize.zw + (0.5 * _ScreenSize.zw); // Should we precompute the half-texel bias? We seem to use it a lot.
         _SSRHitPointTexture[positionSS] = hitPositionNDC.xy;
     }
-    
+
 }
 
 #elif defined(SSR_REPROJECT)
