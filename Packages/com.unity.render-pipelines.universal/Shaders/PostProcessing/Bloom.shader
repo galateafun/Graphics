@@ -64,12 +64,12 @@ Shader "Hidden/Universal Render Pipeline/Bloom"
             UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
             float2 uv = UnityStereoTransformScreenSpaceTex(input.texcoord);
 
-#if defined(SUPPORTS_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
-            UNITY_BRANCH if (_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
-            {
-                uv = RemapFoveatedRenderingLinearToNonUniform(uv);
-            }
-#endif
+// #if defined(SUPPORTS_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
+//             UNITY_BRANCH if (_FOVEATED_RENDERING_NON_UNIFORM_RASTER)
+//             {
+//                 uv = RemapFoveatedRenderingLinearToNonUniform(uv);
+//             }
+// #endif
 
         #if _BLOOM_HQ
             float texelSize = _BlitTexture_TexelSize.x;

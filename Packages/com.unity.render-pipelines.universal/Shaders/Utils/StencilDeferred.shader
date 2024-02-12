@@ -40,8 +40,10 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
     #include "Packages/com.unity.render-pipelines.universal/Shaders/Utils/Deferred.hlsl"
     #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
+    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DanbaidongToon.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRenderingKeywords.hlsl"
     #include "Packages/com.unity.render-pipelines.core/ShaderLibrary/FoveatedRendering.hlsl"
+    
 
     struct Attributes
     {
@@ -292,7 +294,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         half surfaceDataOcclusion = gbuffer1.a;
         uint materialFlags = UnpackMaterialFlags(gbuffer0.a);
 
-        half3 color = 0.0.xxx;
+        half3 color = 0.0;
         half alpha = 1.0;
 
         #if defined(_DEFERRED_MIXED_LIGHTING)
@@ -498,7 +500,7 @@ Shader "Hidden/Universal Render Pipeline/StencilDeferred"
         half surfaceDataOcclusion = 1;
         // uint materialFlags = gbuffer0.a == 0 ? kMaterialFlagReceiveShadowsOff : 0;
 
-        half3 color = 0.0.xxx;
+        half3 color = 0.0;
         half alpha = 1.0;
 
         // #if defined(_DEFERRED_MIXED_LIGHTING)
